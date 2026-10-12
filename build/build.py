@@ -12,6 +12,8 @@ What it does
     - inlines src/script.js (header, footer, router, bindings, accordions, tabs)
     - embeds every file in src/assets/ as a base64 data URI, ONCE, in a JS map
     - concatenates the seven page bodies from src/pages/ as <section class="page">
+    - appends the camp assistant (src/assistant.css, src/assistant.js). It runs
+      in its own <script>, so if it fails the site carries on without it.
 
 Why one file
     The single file must run with no server, no build step at the destination,
@@ -69,9 +71,10 @@ def load_pages():
 
 
 def main():
-    css = (SRC / "styles.css").read_text()
+    css = (SRC / "styles.css").read_text() + "\n" + (SRC / "assistant.css").read_text()
     data = (SRC / "data.js").read_text()
     script = (SRC / "script.js").read_text()
+    assistant = (SRC / "assistant.js").read_text()
     head = (SRC / "head.html").read_text()
     images = load_images()
 
@@ -90,6 +93,7 @@ def main():
         '<div id="site-footer"></div>\n\n'
         "<script>\n" + data.strip() + "\n</script>\n"
         "<script>\n" + script.strip() + "\n</script>\n"
+        "<script>\n" + assistant.strip() + "\n</script>\n"
         "</body>\n</html>\n"
     )
 

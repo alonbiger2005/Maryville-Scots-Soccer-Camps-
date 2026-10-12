@@ -42,9 +42,11 @@ src/
   styles.css       base design system + dark theme layer (41 KB)
   data.js          ← THE ONLY FILE THE COACH EDITS. Dates, prices, links.
   script.js        header, footer, router, data binding, accordions, tabs
+  assistant.js     camp assistant chat bubble (+ assistant.css); own <script>
   pages/*.html     seven page bodies, no <html>/<head>/<body> wrapper
   assets/          14 images + manifest.json mapping key -> filename
 build/build.py     assembles everything into one file
+tests/             Playwright tests for the assistant (node, global playwright)
 dist/              generated output
 ```
 
@@ -63,9 +65,10 @@ Each asset appears **once** in a JS `IMAGES` map; every `<img>` carries
 > of 419 KB (back when there were 8 images) — the championship photo alone
 > appeared three times. Don't reintroduce that.
 >
-> The current build is **~726 KB with 14 embedded images**; the growth since
-> then is the added `--wide`/`--narrow` hero and band variants, not
-> duplication. The build prints the size — check it after adding an asset.
+> The current build is **~774 KB with 14 embedded images** (about 48 KB of that
+> is the camp assistant). Growth since 419 KB is the added `--wide`/`--narrow`
+> hero and band variants plus the assistant, not duplication. The build prints
+> the size — check it after adding an asset.
 
 ### Routing is in memory and carries no `href`
 
@@ -167,6 +170,28 @@ For preview-frame issues, reproduce inside
 That is the only way the routing bugs were ever visible.
 
 ---
+
+## Camp assistant
+
+Bottom-right chat bubble (`src/assistant.js` + `.css`, see README). Decisions:
+
+- **Guided only. No AI, no form filling, voice input on.** Alon chose this.
+  The site has no on-page forms (registration is Google Forms), and AI needs
+  a key-holding backend, which a single file can't have.
+- **It never invents.** FAQ answers are read from the FAQ accordions in the
+  DOM; prices and dates are read from `data.js`. Unknown questions get "I'd
+  rather not guess" plus the phone and email. Paragraphs containing `VERIFY`
+  or `data.js` are filtered out.
+- Navigation chips carry **no `href`**: same preview-frame rule as the rest
+  of the site. They're clicked through the site's own router.
+- The bubble measures anything fixed to the bottom (the phone bar) and floats
+  above it, and hides under full-screen overlays (the menu drawer). The phone
+  sheet sits **above** the bar, so Call/Register stay usable.
+- No `bottom` transition on the bubble: it animated the initial placement, so
+  the bubble visibly slid up on every page load.
+
+Run `node tests/assistant.test.js` after touching it (22 tests, including the
+sandboxed-iframe case and "site still works if the assistant throws").
 
 ## Current content state
 
