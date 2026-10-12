@@ -60,8 +60,12 @@ Each asset appears **once** in a JS `IMAGES` map; every `<img>` carries
 `data-img="brady"` and gets its `src` assigned on load.
 
 > Pasting the data URI into each `<img>` inline made the file 1.33 MB instead
-> of 419 KB — the championship photo alone appeared three times. Don't
-> reintroduce that.
+> of 419 KB (back when there were 8 images) — the championship photo alone
+> appeared three times. Don't reintroduce that.
+>
+> The current build is **~726 KB with 14 embedded images**; the growth since
+> then is the added `--wide`/`--narrow` hero and band variants, not
+> duplication. The build prints the size — check it after adding an asset.
 
 ### Routing is in memory and carries no `href`
 
