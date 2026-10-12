@@ -1,0 +1,115 @@
+<!-- Contact | Maryville Soccer Camp -->
+<!-- data-img="<key>" resolves from src/assets/manifest.json at build time -->
+<section class="dark tight">
+    <div class="wrap-narrow">
+      <hr class="rule">
+      <h1>Contact</h1>
+      <p class="lede">Questions? We&rsquo;re happy to help.</p>
+    </div>
+  </section>
+
+  <section class="cream-bg">
+    <div class="wrap">
+      <div class="contact-card reveal">
+        <div>
+          <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-img="scots" alt="Maryville College Scots logo"
+               width="200" height="200" style="width:132px;height:auto;margin-bottom:18px">
+          <h2 style="margin-bottom:.3em">Maryville Soccer Camp</h2>
+          <p style="margin-bottom:0">Maryville College<br>Maryville, Tennessee</p>
+        </div>
+        <div>
+          <ul class="contact-lines">
+            <li>
+              <span class="k">Email</span>
+              <a href="mailto:maryvillesoccercamp@gmail.com" data-mc-mailto="contact.email"
+                 data-mc="contact.email">maryvillesoccercamp@gmail.com</a>
+            </li>
+            <li>
+              <span class="k">Phone</span>
+              <a href="tel:+18652564070" data-mc-tel="contact.phoneDial"
+                 data-mc="contact.phone">865-256-4070</a>
+            </li>
+          </ul>
+          <div class="btn-row">
+            <a class="btn btn-primary" href="mailto:maryvillesoccercamp@gmail.com"
+               data-mc-gmail="contact.email">Email us</a>
+            <a class="btn btn-secondary" href="tel:+18652564070"
+               data-mc-tel="contact.phoneDial">Call now</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ QUICK ANSWERS ══════════════════════════════════════════════════ -->
+  <section class="white-bg">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <hr class="rule">
+        <h2>Before you call</h2>
+        <p>Most questions already have an answer on the site.</p>
+      </div>
+
+      <ul class="facts reveal">
+        <li>
+          <span class="k">Camp dates and prices</span>
+          <span class="v"><a href="#camps" data-goto="index" data-frag="camps" style="text-decoration:none">Compare the camps</a></span>
+        </li>
+        <li>
+          <span class="k">Registration</span>
+          <span class="v"><a href="#page-register" data-goto="register" style="text-decoration:none">Register for camp</a></span>
+        </li>
+        <li>
+          <span class="k">Packing, meals, check-in</span>
+          <span class="v"><a href="#page-faq" data-goto="faq" style="text-decoration:none">Read the FAQ</a></span>
+        </li>
+        <li>
+          <span class="k">Getting here</span>
+          <span class="v"><a data-mc-href="location.mapsUrl" target="_blank" rel="noopener"
+             style="text-decoration:none">Open in maps</a></span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ═══ PAYING BY CHECK ════════════════════════════════════════════════ -->
+  <section class="cream-bg tight">
+    <div class="wrap">
+      <div class="panel reveal" style="max-width:620px">
+        <p class="label">Payment</p>
+        <h2 style="font-size:1.5rem">Paying by check?</h2>
+        <p>Make checks payable to
+           <strong data-mc="payment.checkPayableTo">Maryville Soccer Camp</strong> and mail to:</p>
+        <!-- VERIFY MAILING ADDRESS WITH COACH BEFORE PUBLISHING FUTURE VERSIONS.
+             This address is stored once, in data.js under `payment`. -->
+        <p style="font-family:var(--display);font-weight:700;font-size:1.1rem;line-height:1.55">
+          <span data-mc="payment.checkRecipient">Pepe Fernandez</span><br>
+          <span data-mc="payment.checkStreet">2101 Chippendale Drive</span><br>
+          <span data-mc="payment.checkCityStateZip">Maryville, TN 37803</span>
+        </p>
+        <p class="note" style="margin-bottom:0">Cash or check only on the day of registration.
+           NCAA regulations prohibit discounts.
+           <a href="#payment" data-goto="faq" data-frag="payment">Payment help</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ STAFF — hidden until verified information is supplied ══════════ -->
+  <section class="white-bg" data-hide-if-empty="staff" hidden>
+    <div class="wrap">
+      <div class="section-head"><hr class="rule"><h2>Meet the staff</h2></div>
+      <!-- Populated from siteData.staff. Do not add unverified biographies. -->
+      <div class="feature-grid" id="staff-grid"></div>
+    </div>
+  </section>
+
+  <section class="cta-final tight">
+    <div class="wrap-narrow">
+      <hr class="rule">
+      <h2>Ready to register?</h2>
+      <p>Choose your camp and complete that camp&rsquo;s form.</p>
+      <div class="btn-row">
+        <a class="btn btn-primary" href="#page-register" data-goto="register">Register now</a>
+      </div>
+    </div>
+  </section>
