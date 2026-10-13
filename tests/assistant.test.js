@@ -361,6 +361,28 @@ test('bubble floats above the phone bar, a cookie bar, and hides under the drawe
   await done(p);
 });
 
+test('bubble rides above the footer links at the bottom of the page', async () => {
+  for (const vp of [{ width: 1440, height: 900 }, { width: 780, height: 900 }]) {
+    const p = await page({ viewport: vp });
+    const measure = () => p.evaluate(() => {
+      const l = [...document.querySelectorAll('.footer-bottom a')].pop().getBoundingClientRect();
+      const b = document.getElementById('asBtn').getBoundingClientRect();
+      return { overlap: !(b.right < l.left || b.left > l.right || b.bottom <= l.top || b.top >= l.bottom),
+               gap: l.top - b.bottom, bottom: b.bottom };
+    });
+    await p.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }));
+    await p.waitForTimeout(100);
+    let m = await measure();
+    assert(!m.overlap, `${vp.width}px: bubble covers the athletics link`);
+    assert(m.gap >= 4 && m.gap <= 16, `${vp.width}px: sits just above it, gap ${m.gap}`);
+    await p.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+    await p.waitForTimeout(100);
+    m = await measure();
+    eq(Math.round(m.bottom), vp.height - 20, `${vp.width}px: back in the corner after scrolling up`);
+    await done(p);
+  }
+});
+
 test('phone layout: icon-only bubble, bottom sheet ~60%, tap targets', async () => {
   const p = await page(PHONE);
   const bw = await p.evaluate(() => document.getElementById('asBtn').getBoundingClientRect().width);

@@ -105,6 +105,11 @@
      bars that only appear at some widths. */
   var AVOID = ['.mobilebar', '[data-assistant-avoid]'];
 
+  /* Links on the page itself that the resting bubble would cover once they
+     scroll into the corner — the footer's last row. The bubble rides on top
+     of them while they're on screen, and drops back into the corner after. */
+  var LIFT_OVER = ['.footer-bottom a'];
+
   var SHORT_ANSWER_WORDS = 6;       // voice: shorter answers send themselves
   var AUTO_SEND_MS = 800;           // ... this long after the speaker pauses
   var MIC_IDLE_MS = 2 * 60 * 1000;  // mic switches off after this much quiet
@@ -719,7 +724,8 @@
      Anything pinned to the bottom of the screen (the phone bar with Call and
      Register, a cookie bar, a modal's action row) is measured and the bubble
      floats just above it. A full-screen overlay such as the menu drawer hides
-     the bubble instead. Re-measured on resize and whenever the page changes. */
+     the bubble instead. Links listed in LIFT_OVER push it up while they are
+     under it. Re-measured on scroll, on resize and whenever the page changes. */
   function pinnedAncestor(n) {
     for (; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
       if (root.contains(n)) return null;
@@ -769,6 +775,18 @@
     }
     root.style.visibility = '';
 
+    // Ride on top of a page link that has scrolled under the resting bubble.
+    var bub = btn.getBoundingClientRect();
+    if (!state.open && bub.width) {
+      var gap = parseFloat(getComputedStyle(root).getPropertyValue('--as-gap')) || 0;
+      document.querySelectorAll(LIFT_OVER.join(',')).forEach(function (n) {
+        var r = n.getBoundingClientRect();
+        if (!r.height || r.top >= H || r.bottom <= 0) return;
+        if (r.right < bub.left || r.left > bub.right) return;
+        off = Math.max(off, H - r.top + 8 - gap);
+      });
+    }
+
     root.style.setProperty('--as-bottom', Math.round(off) + 'px');
     root.classList.toggle('is-covered', overlay);
   }
@@ -780,6 +798,7 @@
     requestAnimationFrame(function () { placing = false; place(); });
   }
   window.addEventListener('resize', schedulePlace);
+  window.addEventListener('scroll', schedulePlace, { passive: true });
   if (window.visualViewport) window.visualViewport.addEventListener('resize', schedulePlace);
   if ('MutationObserver' in window) {
     new MutationObserver(function (records) {
