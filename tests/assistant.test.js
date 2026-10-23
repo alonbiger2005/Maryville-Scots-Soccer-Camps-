@@ -386,6 +386,45 @@ test('phones: bubble never covers the home hero buttons', async () => {
   }
 });
 
+test('phones: bubble never covers the Contact page email link', async () => {
+  for (const vp of [{ width: 360, height: 740 }, { width: 390, height: 780 }, { width: 390, height: 844 }, { width: 414, height: 896 }]) {
+    const p = await page({ ...PHONE, viewport: vp });
+    await p.evaluate(() => document.querySelector('a[data-goto="contact"]').click());
+    await p.waitForTimeout(100);
+    const hit = () => p.evaluate(() => {
+      const b = document.getElementById('asBtn').getBoundingClientRect();
+      const r = document.querySelector('#page-contact .contact-lines a[href^="mailto:"]').getBoundingClientRect();
+      return !(b.right <= r.left || b.left >= r.right || b.bottom <= r.top || b.top >= r.bottom);
+    });
+    for (const y of [0, 80, 160, 240, 320]) {
+      await p.evaluate(t => window.scrollTo({ top: t, behavior: 'instant' }), y);
+      await p.waitForTimeout(60);
+      eq(await hit(), false, `${vp.width}x${vp.height}: covers the email link at scroll ${y}`);
+    }
+    await done(p);
+  }
+});
+
+test('re-measures after the webfonts load and reflow the page', async () => {
+  // Same check as above, but with Google Fonts allowed: Bitter arriving after
+  // the first placement is what pushed the email link under the bubble.
+  const ctx = await browser.newContext({ ...PHONE, viewport: { width: 390, height: 780 } });
+  const p = await ctx.newPage(); p.errors = []; p.on('pageerror', e => p.errors.push(e.message));
+  await p.route(/^https?:/, r => /fonts\.(googleapis|gstatic)\.com/.test(r.request().url()) ? r.continue() : r.abort());
+  await p.goto(URL);
+  await p.evaluate(() => document.querySelector('a[data-goto="contact"]').click());
+  await p.evaluate(() => document.fonts.ready);
+  await p.waitForTimeout(150);
+  const r = await p.evaluate(() => {
+    const b = document.getElementById('asBtn').getBoundingClientRect();
+    const l = document.querySelector('#page-contact .contact-lines a[href^="mailto:"]').getBoundingClientRect();
+    return { hit: !(b.right <= l.left || b.left >= l.right || b.bottom <= l.top || b.top >= l.bottom),
+             bitter: document.fonts.check('700 16px Bitter') };
+  });
+  eq(r.hit, false, 'email link covered after fonts loaded (Bitter loaded: ' + r.bitter + ')');
+  await done(p);
+});
+
 test('bubble rides above the footer links at the bottom of the page', async () => {
   for (const vp of [{ width: 1440, height: 900 }, { width: 780, height: 900 }]) {
     const p = await page({ viewport: vp });

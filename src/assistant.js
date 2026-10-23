@@ -106,10 +106,10 @@
   var AVOID = ['.mobilebar', '[data-assistant-avoid]'];
 
   /* Buttons and links on the page itself that the resting bubble would cover:
-     the hero buttons (on phones "Explore camps" lands in the corner) and the
-     footer's last row. While one is under the bubble's resting spot, the
+     the hero buttons (on phones "Explore camps" lands in the corner), the
+     email and phone lines on the Contact page, and the footer's last row. While one is under the bubble's resting spot, the
      bubble sits just above it; once it scrolls clear, the bubble drops back. */
-  var LIFT_OVER = ['.hero .btn', '.footer-bottom a'];
+  var LIFT_OVER = ['.hero .btn', '.contact-lines a', '.footer-bottom a'];
 
   var SHORT_ANSWER_WORDS = 6;       // voice: shorter answers send themselves
   var AUTO_SEND_MS = 800;           // ... this long after the speaker pauses
@@ -814,6 +814,20 @@
     }).observe(document.body, { attributes: true, attributeFilter: ['class', 'hidden', 'style', 'open'],
                                  childList: true, subtree: true });
   }
+  /* Layout can also move with no change to the markup: the webfonts arrive
+     after the first paint and reflow the text (on phones that pushed the
+     Contact email link under the bubble), images decode late, and each page
+     slides in with an entrance animation, so its links only settle when
+     that ends. */
+  document.addEventListener('animationend', function (e) {
+    if (!root.contains(e.target)) schedulePlace();
+  }, true);
+  if (document.fonts) {
+    document.fonts.ready.then(schedulePlace);
+    if (document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', schedulePlace);
+  }
+  window.addEventListener('load', schedulePlace);
+  if ('ResizeObserver' in window) new ResizeObserver(schedulePlace).observe(document.body);
   place();
 
   /* ── VOICE ─────────────────────────────────────────────────────────────
