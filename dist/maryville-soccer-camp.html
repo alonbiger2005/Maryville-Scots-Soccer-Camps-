@@ -3929,10 +3929,11 @@ window.siteData = siteData;
      bars that only appear at some widths. */
   var AVOID = ['.mobilebar', '[data-assistant-avoid]'];
 
-  /* Links on the page itself that the resting bubble would cover once they
-     scroll into the corner — the footer's last row. The bubble rides on top
-     of them while they're on screen, and drops back into the corner after. */
-  var LIFT_OVER = ['.footer-bottom a'];
+  /* Buttons and links on the page itself that the resting bubble would cover:
+     the hero buttons (on phones "Explore camps" lands in the corner) and the
+     footer's last row. While one is under the bubble's resting spot, the
+     bubble sits just above it; once it scrolls clear, the bubble drops back. */
+  var LIFT_OVER = ['.hero .btn', '.footer-bottom a'];
 
   var SHORT_ANSWER_WORDS = 6;       // voice: shorter answers send themselves
   var AUTO_SEND_MS = 800;           // ... this long after the speaker pauses
@@ -4599,16 +4600,23 @@ window.siteData = siteData;
     }
     root.style.visibility = '';
 
-    // Ride on top of a page link that has scrolled under the resting bubble.
+    // Sit just above a page button that is under the bubble's spot. Repeat,
+    // in case lifting lands it on another one.
     var bub = btn.getBoundingClientRect();
     if (!state.open && bub.width) {
       var gap = parseFloat(getComputedStyle(root).getPropertyValue('--as-gap')) || 0;
-      document.querySelectorAll(LIFT_OVER.join(',')).forEach(function (n) {
-        var r = n.getBoundingClientRect();
-        if (!r.height || r.top >= H || r.bottom <= 0) return;
-        if (r.right < bub.left || r.left > bub.right) return;
-        off = Math.max(off, H - r.top + 8 - gap);
-      });
+      var lifts = [].slice.call(document.querySelectorAll(LIFT_OVER.join(',')));
+      for (var pass = 0; pass < 4; pass++) {
+        var bottom = H - off - gap, top = bottom - bub.height, moved = false;
+        lifts.forEach(function (n) {
+          var r = n.getBoundingClientRect();
+          if (!r.height || r.right < bub.left || r.left > bub.right) return;
+          if (r.top >= bottom || r.bottom <= top) return;
+          off = Math.max(off, H - r.top + 8 - gap);
+          moved = true;
+        });
+        if (!moved) break;
+      }
     }
 
     root.style.setProperty('--as-bottom', Math.round(off) + 'px');

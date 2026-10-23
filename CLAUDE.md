@@ -187,14 +187,17 @@ Bottom-right chat bubble (`src/assistant.js` + `.css`, see README). Decisions:
 - The bubble measures anything fixed to the bottom (the phone bar) and floats
   above it, and hides under full-screen overlays (the menu drawer). The phone
   sheet sits **above** the bar, so Call/Register stay usable.
-- At the bottom of the page the bubble **rides on top of the footer's last
-  row** (`LIFT_OVER`), because it covered "Maryville College Athletics" at
-  desktop widths. It is not a permanent offset, so the bubble stays in the
-  corner everywhere else.
+- `LIFT_OVER`: while a hero button or the footer's last row is under the
+  bubble's resting spot, the bubble sits just above it. It covered "Explore
+  camps" on phones (360×740, 390×780) and "Maryville College Athletics" on
+  desktop. It's not a fixed offset, because the hero button lands at a
+  different height on every phone, so a fixed nudge fixes one phone and can
+  break another. FAQ rows are deliberately not in the list: they're full width,
+  so the bubble would jump on every row.
 - No `bottom` transition on the bubble: it animated the initial placement, so
   the bubble visibly slid up on every page load.
 
-Run `node tests/assistant.test.js` after touching it (23 tests, including the
+Run `node tests/assistant.test.js` after touching it (24 tests, including the
 sandboxed-iframe case and "site still works if the assistant throws").
 
 ## Current content state

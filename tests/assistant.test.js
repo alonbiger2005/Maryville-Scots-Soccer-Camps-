@@ -324,6 +324,8 @@ test('voice: mic hidden where speech recognition is unsupported', async () => {
 
 test('bubble floats above the phone bar, a cookie bar, and hides under the drawer', async () => {
   const p = await page(PHONE);
+  // Past the hero, so its buttons (which also lift the bubble) are out of the way.
+  await p.evaluate(() => window.scrollTo({ top: 400, behavior: 'instant' }));
   const pos = () => p.evaluate(() => ({
     bubble: document.getElementById('asBtn').getBoundingClientRect().bottom,
     bar: document.querySelector('.mobilebar').getBoundingClientRect().top
@@ -359,6 +361,29 @@ test('bubble floats above the phone bar, a cookie bar, and hides under the drawe
   const b = await p.evaluate(() => document.getElementById('asBtn').getBoundingClientRect().bottom);
   eq(Math.round(b), 900 - 20, 'desktop corner after resize');
   await done(p);
+});
+
+test('phones: bubble never covers the home hero buttons', async () => {
+  for (const vp of [{ width: 360, height: 740 }, { width: 390, height: 780 }, { width: 390, height: 844 }, { width: 414, height: 896 }]) {
+    const p = await page({ ...PHONE, viewport: vp });
+    const hit = () => p.evaluate(() => {
+      const b = document.getElementById('asBtn').getBoundingClientRect();
+      return [...document.querySelectorAll('#page-index .hero .btn')].some(e => {
+        const r = e.getBoundingClientRect();
+        return !(b.right <= r.left || b.left >= r.right || b.bottom <= r.top || b.top >= r.bottom);
+      });
+    });
+    eq(await hit(), false, `${vp.width}x${vp.height}: covers a hero button on load`);
+    const rest = vp.height - 57 - 14;   // above the phone bar, in the corner
+    for (const y of [60, 200, 400]) {
+      await p.evaluate(t => window.scrollTo({ top: t, behavior: 'instant' }), y);
+      await p.waitForTimeout(60);
+      eq(await hit(), false, `${vp.width}x${vp.height}: covers a hero button at scroll ${y}`);
+    }
+    const b = await p.evaluate(() => document.getElementById('asBtn').getBoundingClientRect().bottom);
+    eq(Math.round(b), rest, `${vp.width}x${vp.height}: back in the corner once the hero scrolls away`);
+    await done(p);
+  }
 });
 
 test('bubble rides above the footer links at the bottom of the page', async () => {
