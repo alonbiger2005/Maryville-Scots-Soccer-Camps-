@@ -128,6 +128,9 @@
   margin-top: 8px; padding: 10px 12px;
   background: rgba(0, 0, 0, .25); border: 1px solid var(--as-line); border-radius: 10px;
 }
+/* Phone and email stay whole on their own line when they fit; the email
+   only splits after its @ when it doesn't. */
+.as-card a { display: inline-block; }
 .as-card-title { font: 700 1rem/1.25 var(--display, "Bitter", Georgia, serif); color: #FFFFFF; margin-bottom: 6px; }
 .as-facts { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
 .as-facts dt { color: var(--as-muted); font-size: .82rem; padding-top: 1px; }

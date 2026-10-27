@@ -425,6 +425,35 @@ test('re-measures after the webfonts load and reflow the page', async () => {
   await done(p);
 });
 
+test('email address only ever wraps after the @', async () => {
+  // Which text each rendered line starts with, e.g. ["name@", "gmail.com"].
+  const lines = sel => p => p.evaluate(sel => {
+    const e = document.querySelector(sel), r = document.createRange(), out = [''];
+    let last = null, n;
+    const tw = document.createTreeWalker(e, NodeFilter.SHOW_TEXT);
+    while ((n = tw.nextNode())) for (let i = 0; i < n.length; i++) {
+      r.setStart(n, i); r.setEnd(n, i + 1);
+      const c = r.getClientRects()[0]; if (!c) continue;
+      if (last !== null && Math.abs(c.top - last) > 4) out.push('');
+      out[out.length - 1] += n.data[i]; last = c.top;
+    }
+    return out;
+  }, sel);
+  for (const w of [320, 360, 390]) {
+    const p = await page({ ...PHONE, viewport: { width: w, height: 740 } });
+    const email = await p.evaluate(() => window.siteData.contact.email);
+    const ok = l => l.join('') === email && (l.length === 1 || (l.length === 2 && l[0].endsWith('@')));
+    await p.evaluate(() => document.querySelector('a[data-goto="contact"]').click());
+    const pg = await lines('#page-contact .contact-lines a[href^="mailto:"]')(p);
+    assert(ok(pg), `${w}px Contact page: ${pg.join(' | ')}`);
+    await p.click('#asBtn');
+    await chip(p, 'Contact camp staff');
+    const chat = await lines('.as-card a[href^="mailto:"]')(p);
+    assert(ok(chat), `${w}px chat card: ${chat.join(' | ')}`);
+    await done(p);
+  }
+});
+
 test('bubble rides above the footer links at the bottom of the page', async () => {
   for (const vp of [{ width: 1440, height: 900 }, { width: 780, height: 900 }]) {
     const p = await page({ viewport: vp });

@@ -125,6 +125,7 @@ Changing these back will look like a fix and will be a regression.
 | "Email us" opens Gmail compose; the plain address stays `mailto:` | Alon's call — most parents use Gmail, and `mailto:` was opening Outlook. The address link keeps `mailto:` so Outlook/Apple Mail users aren't stranded. |
 | `mailto:`/`tel:` clicks fall back to copying to clipboard after ~900ms | Covers preview frames, desktops with no mail client, laptops with no dialler. Watches for window blur so it stays quiet when a real client opens. |
 | `img { height: auto }` is set globally | The `width`/`height` attributes are presentational hints that fight `max-width:100%` and stretch images vertically on phones. |
+| Email addresses get a `<wbr>` after the `@` (in `bindData` and the assistant) | On phones the Contact email broke mid-word ("…gmail.co" / "m"). Now it is either one line or "name@" / "gmail.com". The link uses `overflow-wrap: break-word`, not `word-break: break-word`, which allowed a break anywhere. |
 | `.page { padding-block: 0 }` | `.page` is a `<section>` and would otherwise inherit section padding, opening a gap above every hero. |
 
 ---
@@ -202,7 +203,7 @@ Bottom-right chat bubble (`src/assistant.js` + `.css`, see README). Decisions:
 - No `bottom` transition on the bubble: it animated the initial placement, so
   the bubble visibly slid up on every page load.
 
-Run `node tests/assistant.test.js` after touching it (26 tests, including the
+Run `node tests/assistant.test.js` after touching it (27 tests, including the
 sandboxed-iframe case and "site still works if the assistant throws").
 
 ## Current content state

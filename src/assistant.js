@@ -133,6 +133,15 @@
       .replace(/&/g, ' and ').replace(/[’']/g, "'")
       .replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
   }
+  /* An email address that may only wrap after the @, never mid-word. */
+  function emailText(v) {
+    var f = document.createDocumentFragment(), at = v.indexOf('@');
+    if (at < 1) { f.appendChild(document.createTextNode(v)); return f; }
+    f.appendChild(document.createTextNode(v.slice(0, at + 1)));
+    f.appendChild(document.createElement('wbr'));
+    f.appendChild(document.createTextNode(v.slice(at + 1)));
+    return f;
+  }
   function wordCount(s) { return String(s).trim() ? String(s).trim().split(/\s+/).length : 0; }
 
   function svg(name) {
@@ -476,7 +485,7 @@
       wrap.appendChild(el('p', null, 'Camp staff would much rather answer your question than have you guess.'));
       var lines = el('div', 'as-card');
       var tel = el('a', null, D.contact.phone); tel.href = 'tel:' + D.contact.phoneDial;
-      var mail = el('a', null, D.contact.email); mail.href = 'mailto:' + D.contact.email;
+      var mail = el('a'); mail.appendChild(emailText(D.contact.email)); mail.href = 'mailto:' + D.contact.email;
       var p1 = el('p'); p1.appendChild(document.createTextNode('Call ')); p1.appendChild(tel);
       var p2 = el('p'); p2.appendChild(document.createTextNode('Email ')); p2.appendChild(mail);
       lines.appendChild(p1); lines.appendChild(p2);
@@ -489,8 +498,11 @@
 
     unknown: function () {
       setMode('qa');
-      say('I don’t have an answer for that on this site, and I’d rather not guess. ' +
-          'Camp staff can help: call ' + D.contact.phone + ' or email ' + D.contact.email + '.');
+      var p = el('p', null, 'I don’t have an answer for that on this site, and I’d rather not guess. ' +
+          'Camp staff can help: call ' + D.contact.phone + ' or email ');
+      p.appendChild(emailText(D.contact.email));
+      p.appendChild(document.createTextNode('.'));
+      say(p);
       chips([{ label: 'Browse FAQ topics', step: 'ask' },
              { label: 'Contact camp staff', step: 'contact' }].concat(NAV_TAIL));
     }

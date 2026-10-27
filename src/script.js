@@ -316,7 +316,17 @@
   function bindData() {
     document.querySelectorAll('[data-mc]').forEach(function (el) {
       var v = get(el.getAttribute('data-mc'));
-      if (v != null) el.textContent = v;
+      if (v == null) return;
+      el.textContent = v;
+      // An email address may only wrap after the @ ("name@" / "gmail.com"),
+      // never mid-word, which is what happened on phones.
+      var at = String(v).indexOf('@');
+      if (at > 0) {
+        el.textContent = '';
+        el.appendChild(document.createTextNode(v.slice(0, at + 1)));
+        el.appendChild(document.createElement('wbr'));
+        el.appendChild(document.createTextNode(v.slice(at + 1)));
+      }
     });
     document.querySelectorAll('[data-mc-href]').forEach(function (el) {
       var v = get(el.getAttribute('data-mc-href'));

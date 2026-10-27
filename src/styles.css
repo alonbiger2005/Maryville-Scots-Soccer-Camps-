@@ -618,7 +618,7 @@ section.tight { padding-block: clamp(40px, 5vw, 64px); }
 .contact-lines a {
   display: inline-block; padding: 8px 0; min-height: 44px;
   font-family: var(--display); font-weight: 700; font-size: 1.16rem;
-  color: var(--garnet); text-decoration: none; word-break: break-word;
+  color: var(--garnet); text-decoration: none; overflow-wrap: break-word;
 }
 .dark .contact-lines a { color: var(--white); }
 .contact-lines a:hover { text-decoration: underline; text-decoration-color: var(--orange); }

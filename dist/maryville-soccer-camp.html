@@ -633,7 +633,7 @@ section.tight { padding-block: clamp(40px, 5vw, 64px); }
 .contact-lines a {
   display: inline-block; padding: 8px 0; min-height: 44px;
   font-family: var(--display); font-weight: 700; font-size: 1.16rem;
-  color: var(--garnet); text-decoration: none; word-break: break-word;
+  color: var(--garnet); text-decoration: none; overflow-wrap: break-word;
 }
 .dark .contact-lines a { color: var(--white); }
 .contact-lines a:hover { text-decoration: underline; text-decoration-color: var(--orange); }
@@ -1243,6 +1243,9 @@ figure.split-media:focus-within img {
   margin-top: 8px; padding: 10px 12px;
   background: rgba(0, 0, 0, .25); border: 1px solid var(--as-line); border-radius: 10px;
 }
+/* Phone and email stay whole on their own line when they fit; the email
+   only splits after its @ when it doesn't. */
+.as-card a { display: inline-block; }
 .as-card-title { font: 700 1rem/1.25 var(--display, "Bitter", Georgia, serif); color: #FFFFFF; margin-bottom: 6px; }
 .as-facts { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
 .as-facts dt { color: var(--as-muted); font-size: .82rem; padding-top: 1px; }
@@ -3685,7 +3688,17 @@ window.siteData = siteData;
   function bindData() {
     document.querySelectorAll('[data-mc]').forEach(function (el) {
       var v = get(el.getAttribute('data-mc'));
-      if (v != null) el.textContent = v;
+      if (v == null) return;
+      el.textContent = v;
+      // An email address may only wrap after the @ ("name@" / "gmail.com"),
+      // never mid-word, which is what happened on phones.
+      var at = String(v).indexOf('@');
+      if (at > 0) {
+        el.textContent = '';
+        el.appendChild(document.createTextNode(v.slice(0, at + 1)));
+        el.appendChild(document.createElement('wbr'));
+        el.appendChild(document.createTextNode(v.slice(at + 1)));
+      }
     });
     document.querySelectorAll('[data-mc-href]').forEach(function (el) {
       var v = get(el.getAttribute('data-mc-href'));
@@ -3956,6 +3969,15 @@ window.siteData = siteData;
     return String(s || '').toLowerCase()
       .replace(/&/g, ' and ').replace(/[’']/g, "'")
       .replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+  /* An email address that may only wrap after the @, never mid-word. */
+  function emailText(v) {
+    var f = document.createDocumentFragment(), at = v.indexOf('@');
+    if (at < 1) { f.appendChild(document.createTextNode(v)); return f; }
+    f.appendChild(document.createTextNode(v.slice(0, at + 1)));
+    f.appendChild(document.createElement('wbr'));
+    f.appendChild(document.createTextNode(v.slice(at + 1)));
+    return f;
   }
   function wordCount(s) { return String(s).trim() ? String(s).trim().split(/\s+/).length : 0; }
 
@@ -4300,7 +4322,7 @@ window.siteData = siteData;
       wrap.appendChild(el('p', null, 'Camp staff would much rather answer your question than have you guess.'));
       var lines = el('div', 'as-card');
       var tel = el('a', null, D.contact.phone); tel.href = 'tel:' + D.contact.phoneDial;
-      var mail = el('a', null, D.contact.email); mail.href = 'mailto:' + D.contact.email;
+      var mail = el('a'); mail.appendChild(emailText(D.contact.email)); mail.href = 'mailto:' + D.contact.email;
       var p1 = el('p'); p1.appendChild(document.createTextNode('Call ')); p1.appendChild(tel);
       var p2 = el('p'); p2.appendChild(document.createTextNode('Email ')); p2.appendChild(mail);
       lines.appendChild(p1); lines.appendChild(p2);
@@ -4313,8 +4335,11 @@ window.siteData = siteData;
 
     unknown: function () {
       setMode('qa');
-      say('I don’t have an answer for that on this site, and I’d rather not guess. ' +
-          'Camp staff can help: call ' + D.contact.phone + ' or email ' + D.contact.email + '.');
+      var p = el('p', null, 'I don’t have an answer for that on this site, and I’d rather not guess. ' +
+          'Camp staff can help: call ' + D.contact.phone + ' or email ');
+      p.appendChild(emailText(D.contact.email));
+      p.appendChild(document.createTextNode('.'));
+      say(p);
       chips([{ label: 'Browse FAQ topics', step: 'ask' },
              { label: 'Contact camp staff', step: 'contact' }].concat(NAV_TAIL));
     }
