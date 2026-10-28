@@ -10,8 +10,19 @@ What it does
     - inlines src/styles.css into the <style> block
     - inlines src/data.js   (the only file the coach edits each year)
     - inlines src/script.js (header, footer, router, bindings, accordions, tabs)
-    - embeds every file in src/assets/ as a base64 data URI, ONCE, in a JS map
+    - embeds every file in src/assets/ as a base64 data URI, ONCE each, in its
+      own small <script> at the very END of the file (see "Images last")
     - concatenates the seven page bodies from src/pages/ as <section class="page">
+    - appends the camp assistant (src/assistant.css, src/assistant.js). It runs
+      in its own <script>, so if it fails the site carries on without it.
+
+Images last
+    The images are ~75% of the file. Each one is a separate script after all
+    the text, in the order the home page needs them, so on a slow phone the
+    words show in about a second and the photos fill in as they arrive.
+    Before this, nothing at all showed until the whole file had downloaded
+    (4 s on slow 4G, 7 s on 3G). The home page is also not `hidden` in the
+    markup, so its text shows even before any script has run.
 
 Why one file
     The single file must run with no server, no build step at the destination,
@@ -55,27 +66,49 @@ def load_images():
     return images
 
 
+def image_order(images):
+    """Logo first (header), then the home page's images in page order, then
+    the rest. Whatever is on screen first arrives first."""
+    home = (SRC / "pages" / "index.html").read_text()
+    seen = ["scots"]
+    for key in re.findall(r'data-img="([a-z_]+)"', home):
+        if key not in seen:
+            seen.append(key)
+    return [k for k in seen if k in images] + [k for k in images if k not in seen]
+
+
+def image_scripts(images):
+    return "".join(
+        "<script>document.dispatchEvent(new CustomEvent('mc:image',{detail:"
+        + json.dumps({"key": key, "src": images[key]})
+        + "}))</script>\n"
+        for key in image_order(images)
+    )
+
+
 def load_pages():
     out = []
     for slug in PAGES:
         raw = (SRC / "pages" / f"{slug}.html").read_text()
         title = re.search(r"<!-- (.*?) -->", raw).group(1)
         body = re.sub(r"^<!--.*?-->\n", "", raw, count=2, flags=re.S).strip()
+        # Home is visible in the markup, so its text shows before any script.
+        hidden = "" if slug == "index" else " hidden"
         out.append(
             f'<section class="page" id="page-{slug}" '
-            f'data-title="{title}" hidden>\n{body}\n</section>'
+            f'data-title="{title}"{hidden}>\n{body}\n</section>'
         )
     return "\n\n".join(out)
 
 
 def main():
-    css = (SRC / "styles.css").read_text()
+    css = (SRC / "styles.css").read_text() + "\n" + (SRC / "assistant.css").read_text()
     data = (SRC / "data.js").read_text()
     script = (SRC / "script.js").read_text()
+    assistant = (SRC / "assistant.js").read_text()
     head = (SRC / "head.html").read_text()
     images = load_images()
 
-    script = script.replace("__IMAGES__", json.dumps(images))
     head = head.replace("__CSS__", "\n" + css + "\n")
 
     html = (
@@ -90,12 +123,18 @@ def main():
         '<div id="site-footer"></div>\n\n'
         "<script>\n" + data.strip() + "\n</script>\n"
         "<script>\n" + script.strip() + "\n</script>\n"
-        "</body>\n</html>\n"
+        "<script>\n" + assistant.strip() + "\n</script>\n"
+        + image_scripts(images)
+        + "</body>\n</html>\n"
     )
 
     DIST.mkdir(exist_ok=True)
     out = DIST / "maryville-soccer-camp.html"
     out.write_text(html)
+    # GitHub Pages serves the repository root, so the same file is written as
+    # index.html there too (with .nojekyll, so it is served untouched). The
+    # two are byte-identical and git stores identical files once.
+    (ROOT / "index.html").write_text(html)
     print(f"built {out}  —  {len(html) // 1024} KB  ({len(images)} embedded images)")
 
 

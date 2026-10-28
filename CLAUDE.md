@@ -15,8 +15,9 @@ Owner: **Alon** — goalkeeper on the Maryville College men's team, who runs the
 camp's web presence. The original brief is in `docs/ORIGINAL-BRIEF.md`; it is
 still the governing spec except where this file records a later decision.
 
-**Status: feature-complete, not yet published.** The blocker is content
-verification, not code — see `CONTENT-CHECKLIST.md`.
+**Status: feature-complete, not yet published.** The blocker is content, not
+code: Alon is getting the 2027 dates (and each camp's `endDate`), plus the
+other items in `CONTENT-CHECKLIST.md`. Until then every camp shows as finished.
 
 ---
 
@@ -29,8 +30,10 @@ open dist/maryville-soccer-camp.html
 
 No dependencies, no package manager, no server. Python 3 standard library only.
 
-**Edit `src/`, never `dist/`.** The dist file is generated and will be
-overwritten.
+**Edit `src/`, never `dist/` or the root `index.html`.** Both are generated
+(identical) and will be overwritten. The root copy is what GitHub Pages
+serves at https://alonbiger2005.github.io/Maryville-Scots-Soccer-Camps-/ ;
+`.nojekyll` stops Pages from running Jekyll over the repo.
 
 ---
 
@@ -42,10 +45,14 @@ src/
   styles.css       base design system + dark theme layer (41 KB)
   data.js          ← THE ONLY FILE THE COACH EDITS. Dates, prices, links.
   script.js        header, footer, router, data binding, accordions, tabs
+  assistant.js     camp assistant chat bubble (+ assistant.css); own <script>
   pages/*.html     seven page bodies, no <html>/<head>/<body> wrapper
   assets/          14 images + manifest.json mapping key -> filename
 build/build.py     assembles everything into one file
+tests/             Playwright tests: assistant.test.js, site.test.js (node, global playwright)
 dist/              generated output
+index.html         generated, identical to dist/ (GitHub Pages serves this)
+.nojekyll          tells GitHub Pages to serve files as-is
 ```
 
 ### The output must stay a single file
@@ -54,14 +61,28 @@ Non-negotiable across all of Alon's builds. One HTML file, no external requests
 except Google Fonts, every asset embedded as base64. It gets opened from a text
 message or a QR code with no hosting involved.
 
-### Images are embedded once
+### Images are embedded once, and arrive last
 
-Each asset appears **once** in a JS `IMAGES` map; every `<img>` carries
-`data-img="brady"` and gets its `src` assigned on load.
+Each asset appears **once**, in its own small `<script>` at the very end of the
+file, after all page text and the other scripts. Each one fires an `mc:image`
+event and script.js fills every `<img data-img="brady">` with it. Order: the
+logo, then the home page's images, then the rest.
+
+> Before this, the images sat in one map inside script.js, so the header and
+> pages (both revealed by script) showed nothing until the whole ~800 KB had
+> downloaded: **4 s blank on slow 4G, 7 s on 3G**. Now text shows at
+> 0.5 s / 0.9 s and photos fill in. The home page is also not `hidden` in
+> the markup, so its text shows even with JavaScript off. Don't move the
+> images back into script.js.
 
 > Pasting the data URI into each `<img>` inline made the file 1.33 MB instead
-> of 419 KB — the championship photo alone appeared three times. Don't
-> reintroduce that.
+> of 419 KB (back when there were 8 images) — the championship photo alone
+> appeared three times. Don't reintroduce that.
+>
+> The current build is **~791 KB with 14 embedded images** (about 50 KB of that
+> is the camp assistant). Growth since 419 KB is the added `--wide`/`--narrow`
+> hero and band variants plus the assistant, not duplication. The build prints
+> the size — check it after adding an asset.
 
 ### Routing is in memory and carries no `href`
 
@@ -80,6 +101,21 @@ pure JS state.
 > `data-goto="<page>"`, optional `data-frag="<id>"`, plus `role="link"` and
 > `tabindex="0"`, and a keydown handler makes Enter/Space work. If you add an
 > internal link, follow that pattern or it will break in preview.
+
+**Back button:** each page change calls `history.pushState(state, '')`, with
+state only and **never a URL argument**, so the address doesn't change. The phone's
+Back button then returns to the previous page at the same scroll position
+instead of leaving the site. This was tested inside the sandboxed srcdoc frame:
+no dialog, Back works. Everything is in try/catch, so a frame that refuses
+history still navigates.
+
+**Links to one page:** `#elite-camp` or `#elite-camp/schedule` opens that page
+when the site loads (and on `hashchange`). This is read only: the site never
+writes to the URL.
+
+**Focus:** keyboard and mouse navigation moves focus to the new page's `h1`
+(or the section asked for), so screen readers announce it. Navigation from
+the chat leaves focus in the chat.
 
 Only 11 links leave the site: three registration forms, map links, the college
 site, mcscots.com. Those keep real `href`s, get `rel="noopener noreferrer"`, a
@@ -118,6 +154,11 @@ Changing these back will look like a fix and will be a regression.
 | "Email us" opens Gmail compose; the plain address stays `mailto:` | Alon's call — most parents use Gmail, and `mailto:` was opening Outlook. The address link keeps `mailto:` so Outlook/Apple Mail users aren't stranded. |
 | `mailto:`/`tel:` clicks fall back to copying to clipboard after ~900ms | Covers preview frames, desktops with no mail client, laptops with no dialler. Watches for window blur so it stays quiet when a real client opens. |
 | `img { height: auto }` is set globally | The `width`/`height` attributes are presentational hints that fight `max-width:100%` and stretch images vertically on phones. |
+| Email addresses get a `<wbr>` after the `@` (in `bindData` and the assistant) | On phones the Contact email broke mid-word ("…gmail.co" / "m"). Now it is either one line or "name@" / "gmail.com". The link uses `overflow-wrap: break-word`, not `word-break: break-word`, which allowed a break anywhere. |
+| Camps go "finished" by themselves (`endDate` in data.js) | All 2026 camps were over while the site still said "registration is open" and linked to the forms. The day after `endDate`, Register buttons become "Ask about 2027" (to Contact), the card and hero get a note, and the announcement bar changes once every camp is over. The last day itself still counts as open. |
+| Off-season, generic Register buttons read "2027 camps" | Once every camp is finished, "Register" promised something you couldn't do. Nav, drawer, phone bar, hero and page buttons read "2027 camps" (still to the Register page, whose heading and intro change to match). The "Ready to register?" sections (`data-season="open"`) are hidden. Inline "registration page" links and the footer's "Registration" link stay. The phone bar drops its icon at ≤400px so the words fit. The chat's menu follows, and typing "register" still works. |
+| Packing lists (`ul[data-pack]`) are real checkboxes | The checkbox icons looked tickable and did nothing. Ticks are saved in localStorage per device, keyed by item text; without storage they still tick. Other `.checklist`s stay decorative. |
+| Visually hidden `h2`s on FAQ and Register | Those pages went h1 → h3. The hidden headings fix the outline without changing the look. |
 | `.page { padding-block: 0 }` | `.page` is a `<section>` and would otherwise inherit section padding, opening a gap above every hero. |
 
 ---
@@ -156,6 +197,9 @@ The checks that have actually caught regressions:
 • accordions expand, schedule tabs switch, drawer + sticky bar navigate
 • zero JS errors
 • prefers-reduced-motion disables transforms
+• Back returns to the previous page; #<page> opens that page
+• slow 4G: text visible in about 1 s (tests/site.test.js measures it)
+• node tests/site.test.js and node tests/assistant.test.js both pass
 ```
 
 For preview-frame issues, reproduce inside
@@ -163,6 +207,40 @@ For preview-frame issues, reproduce inside
 That is the only way the routing bugs were ever visible.
 
 ---
+
+## Camp assistant
+
+Bottom-right chat bubble (`src/assistant.js` + `.css`, see README). Decisions:
+
+- **Guided only. No AI, no form filling, voice input on.** Alon chose this.
+  The site has no on-page forms (registration is Google Forms), and AI needs
+  a key-holding backend, which a single file can't have.
+- **It never invents.** FAQ answers are read from the FAQ accordions in the
+  DOM; prices and dates are read from `data.js`. Unknown questions get "I'd
+  rather not guess" plus the phone and email. Paragraphs containing `VERIFY`
+  or `data.js` are filtered out.
+- Navigation chips carry **no `href`**: same preview-frame rule as the rest
+  of the site. They're clicked through the site's own router.
+- The bubble measures anything fixed to the bottom (the phone bar) and floats
+  above it, and hides under full-screen overlays (the menu drawer). The phone
+  sheet sits **above** the bar, so Call/Register stay usable.
+- `LIFT_OVER`: while a hero button, the Contact page's email/phone lines or
+  the footer's last row is under the bubble's resting spot, the bubble sits
+  just above it. It covered "Explore camps" on phones (360×740, 390×780), the
+  Contact email link on phones, and "Maryville College Athletics" on
+  desktop. It's not a fixed offset, because the hero button lands at a
+  different height on every phone, so a fixed nudge fixes one phone and can
+  break another. FAQ rows are deliberately not in the list: they're full width,
+  so the bubble would jump on every row.
+- Placement re-runs on scroll, resize, DOM changes, **font load**, body
+  resize and the end of the page entrance animation (it slides content ~14px). The webfonts land after the first placement and reflow the text;
+  missing that left the Contact email link covered on phones even though the
+  tests passed (they block fonts). One test now lets Google Fonts through.
+- No `bottom` transition on the bubble: it animated the initial placement, so
+  the bubble visibly slid up on every page load.
+
+Run `node tests/assistant.test.js` after touching it (28 tests, including the
+sandboxed-iframe case and "site still works if the assistant throws").
 
 ## Current content state
 
