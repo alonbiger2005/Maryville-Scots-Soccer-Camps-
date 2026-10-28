@@ -131,6 +131,10 @@ def main():
     DIST.mkdir(exist_ok=True)
     out = DIST / "maryville-soccer-camp.html"
     out.write_text(html)
+    # GitHub Pages serves the repository root, so the same file is written as
+    # index.html there too (with .nojekyll, so it is served untouched). The
+    # two are byte-identical and git stores identical files once.
+    (ROOT / "index.html").write_text(html)
     print(f"built {out}  —  {len(html) // 1024} KB  ({len(images)} embedded images)")
 
 

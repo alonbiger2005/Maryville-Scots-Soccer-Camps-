@@ -113,5 +113,13 @@ their own dates.
 
 ## Hosting
 
-Drop `dist/maryville-soccer-camp.html` on any static host (Netlify, GitHub
-Pages, Cloudflare Pages) as `index.html`. Nothing else is required.
+**Now:** GitHub Pages, from the repository root:
+https://alonbiger2005.github.io/Maryville-Scots-Soccer-Camps-/ . The build
+writes the site to `dist/maryville-soccer-camp.html` **and** to `index.html` at
+the root (identical files); `.nojekyll` makes Pages serve it untouched. Push a
+build and Pages republishes in a minute or two. Page links work there too:
+`…/Maryville-Scots-Soccer-Camps-/#elite-camp`.
+
+**Later, with a real domain:** add it under Settings → Pages → Custom domain,
+or drop `index.html` on any static host (Netlify, Cloudflare Pages). Nothing
+else is required.

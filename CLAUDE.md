@@ -30,8 +30,10 @@ open dist/maryville-soccer-camp.html
 
 No dependencies, no package manager, no server. Python 3 standard library only.
 
-**Edit `src/`, never `dist/`.** The dist file is generated and will be
-overwritten.
+**Edit `src/`, never `dist/` or the root `index.html`.** Both are generated
+(identical) and will be overwritten. The root copy is what GitHub Pages
+serves at https://alonbiger2005.github.io/Maryville-Scots-Soccer-Camps-/ ;
+`.nojekyll` stops Pages from running Jekyll over the repo.
 
 ---
 
@@ -49,6 +51,8 @@ src/
 build/build.py     assembles everything into one file
 tests/             Playwright tests: assistant.test.js, site.test.js (node, global playwright)
 dist/              generated output
+index.html         generated, identical to dist/ (GitHub Pages serves this)
+.nojekyll          tells GitHub Pages to serve files as-is
 ```
 
 ### The output must stay a single file
