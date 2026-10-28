@@ -235,6 +235,9 @@
   var chipDefs = [];
 
   function chips(list) {
+    // If a chip had focus it's about to be removed; keep keyboard users in
+    // the chat by moving focus to the first new chip (or the text box).
+    var hadFocus = chipsEl.contains(document.activeElement);
     chipsEl.innerHTML = '';
     chipDefs = list.filter(Boolean);
     chipDefs.forEach(function (c, i) {
@@ -263,6 +266,10 @@
     });
     chipsEl.hidden = !chipDefs.length;
     chipsEl.scrollTop = 0;
+    if (hadFocus) {
+      var first = chipsEl.firstChild || input;
+      try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); }
+    }
   }
 
   function nav(page, frag) {
@@ -361,13 +368,20 @@
       if (c.mountainChallengePrice) row('Mountain Challenge', c.mountainChallengePrice, c.mountainChallengeNote);
     }
     box.appendChild(dl);
+    // `finished` is worked out from endDate in data.js by script.js.
+    if (c.finished) box.appendChild(el('p', 'as-finished', FINISHED));
     return box;
   }
+
+  var FINISHED = 'This camp has finished. Next year’s dates will be posted on this site.';
+  function canRegister(c) { return !c.finished && !!c.registrationUrl; }
+  function nextYear(c) { return +String(c.endDate).slice(0, 4) + 1; }
 
   function campChips(key) {
     var c = D.camps[key], m = CAMP[key];
     return [
-      c.registrationUrl ? { label: 'Register for ' + c.shortName, url: c.registrationUrl } : null,
+      canRegister(c) ? { label: 'Register for ' + c.shortName, url: c.registrationUrl }
+                     : { label: 'Ask about ' + nextYear(c), step: 'contact' },
       document.getElementById('page-' + m.page).querySelector('#schedule')
         ? { label: 'See the schedule', page: m.page, frag: 'schedule' } : null,
       { label: 'Questions about this camp', step: 'topic', arg: m.faq }
@@ -405,10 +419,19 @@
 
     register: function () {
       setMode('navigate');
-      say('Each camp has its own registration form. Which camp?');
-      var list = Object.keys(CAMP).map(function (k) {
+      var open = Object.keys(CAMP).filter(function (k) { return canRegister(D.camps[k]); });
+      if (!open.length) {
+        say('This year’s camps have all finished, so registration is closed. Next year’s dates ' +
+            'will be posted on this site. Camp staff can tell you more in the meantime.');
+        chips([{ label: 'Contact camp staff', step: 'contact' }].concat(NAV_TAIL));
+        return;
+      }
+      say(open.length === Object.keys(CAMP).length
+        ? 'Each camp has its own registration form. Which camp?'
+        : 'Each camp has its own registration form. These are still open:');
+      var list = open.map(function (k) {
         var c = D.camps[k];
-        return c.registrationUrl ? { label: c.shortName, url: c.registrationUrl } : null;
+        return { label: c.shortName, url: c.registrationUrl };
       });
       chips(list.concat([{ label: 'Not sure which camp', step: 'findCamp' },
                          { label: 'Registration page', page: 'register' }], NAV_TAIL));

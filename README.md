@@ -16,6 +16,19 @@ Open **`src/data.js`**, change the dates, prices and registration links, change
 `registrationStatus`, then run the build. That is the whole job — nothing else
 needs touching.
 
+**Set each camp's `endDate` too** (its last day, `YEAR-MONTH-DAY`). The day
+after it, the site marks that camp finished on its own: its Register buttons
+become "Ask about <next year>" and go to Contact, and its card and page say next
+year's dates will be posted. When every camp is finished, the announcement bar
+says the season is over. New dates plus a new `endDate` reopen it.
+
+## Linking to one page
+
+Add the page name after `#`: `…/maryville-soccer-camp.html#elite-camp`, or a
+section too: `#elite-camp/schedule`. Pages: `index`, `id-prospect`,
+`elite-camp`, `hs-team-camp`, `faq`, `register`, `contact`. Useful for texts
+and QR codes. The site only reads the address; it never changes it.
+
 ## Files
 
 | Path | What |
@@ -29,6 +42,7 @@ needs touching.
 | `src/script.js` | Header, footer, router, bindings, accordions, tabs. |
 | `src/assistant.js`, `src/assistant.css` | The camp assistant (chat bubble, bottom right). |
 | `tests/assistant.test.js` | Browser tests for the assistant. |
+| `tests/site.test.js` | Browser tests for the router, finished camps, loading, packing list, focus. |
 | `src/assets/` | 14 images + `manifest.json`. |
 | `build/build.py` | Assembles `src/` into `dist/`. |
 | `dist/` | Generated. Don't edit. |
@@ -89,7 +103,12 @@ AI would need a server to hold an API key, which a single file can't have.
 ```bash
 python3 build/build.py
 NODE_PATH="$(npm root -g)" node tests/assistant.test.js    # needs: npm i -g playwright
+NODE_PATH="$(npm root -g)" node tests/site.test.js
 ```
+
+Both run on a fixed date (January 2026, registration open) so results don't
+change as the real calendar passes camp dates; the finished-camp tests set
+their own dates.
 
 ## Hosting
 

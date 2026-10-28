@@ -26,11 +26,17 @@ function assert(cond, msg) { if (!cond) throw new Error(msg); }
 function eq(a, b, msg) { if (a !== b) throw new Error(`${msg}: expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); }
 
 let browser;
+/* Tests run on a fixed date while registration is open (January 2026), so
+   they don't change result as the real calendar moves past camp dates.
+   Pass { now: '…' } to test another day. */
+const OPEN_DAY = '2026-01-15T12:00:00';
 async function page(opts = DESKTOP, init) {
-  const ctx = await browser.newContext(opts);
+  const { now = OPEN_DAY, ...ctxOpts } = opts;
+  const ctx = await browser.newContext(ctxOpts);
   const p = await ctx.newPage();
   p.errors = [];
   p.on('pageerror', e => p.errors.push(e.message));
+  await p.clock.setFixedTime(new Date(now));
   // Only Google Fonts may load; nothing else should reach the network.
   await p.route(/^https?:/, r => r.abort());
   if (init) await p.addInitScript(init);
@@ -227,6 +233,32 @@ test('context: on the ID camp page, "is lunch included" answers for that camp', 
   eq((await state(p)).step, 'answer', 'answered');
   const q = await p.evaluate(() => document.querySelector('#b-idcamp-3').textContent.trim());
   assert((await lastBot(p)).includes(q), 'ID camp lunch answer');
+  await done(p);
+});
+
+test('finished camps: no form links, the chat says so and offers Contact', async () => {
+  // 1 March 2026: ID & Prospect (Feb 14–15) is over, the other two are open.
+  let p = await page({ ...DESKTOP, now: '2026-03-01T12:00:00' });
+  await p.click('#asBtn');
+  await chip(p, 'Register');
+  const labels = await chipLabels(p);
+  const prospect = await p.evaluate(() => window.siteData.camps.prospect.shortName);
+  assert(!labels.some(l => l.startsWith(prospect)), 'finished camp offered for registration: ' + labels);
+  eq(await p.locator('#asChips a.is-external').count(), 2, 'the two open camps keep their forms');
+  await chip(p, 'Main menu');
+  await chip(p, 'Find the right camp');
+  await chip(p, 'A college-bound player');
+  assert((await lastBot(p)).includes('This camp has finished'), 'camp card says finished');
+  eq(await p.locator('#asChips a.is-external').count(), 0, 'no form link for the finished camp');
+  assert((await chipLabels(p)).includes('Ask about 2027'), 'offers to ask about next year');
+  await done(p);
+
+  // 28 October 2026: every camp is over.
+  p = await page({ ...DESKTOP, now: '2026-10-28T12:00:00' });
+  await p.click('#asBtn');
+  await chip(p, 'Register');
+  assert((await lastBot(p)).includes('registration is closed'), 'season over message');
+  eq(await p.locator('#asChips a.is-external').count(), 0, 'no form links at all');
   await done(p);
 });
 
@@ -520,6 +552,8 @@ test('contrast: chat text meets WCAG AA', async () => {
   await p.click('#asBtn');
   await chip(p, 'Find the right camp');
   await chip(p, 'A player aged');
+  await p.mouse.move(5, 5);          // no chip mid-way through its hover fade
+  await p.waitForTimeout(250);
   const fails = await p.evaluate(() => {
     function rgb(s) { const m = s.match(/[\d.]+/g).map(Number); return { r: m[0], g: m[1], b: m[2], a: m[3] == null ? 1 : m[3] }; }
     function over(fg, bg) { return { r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 }; }

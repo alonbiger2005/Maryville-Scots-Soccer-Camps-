@@ -17,16 +17,25 @@
     { label: 'FAQ',           page: 'faq' },
     { label: 'Contact',       page: 'contact' }
   ];
-  var IMAGES = __IMAGES__;
-  var LOGO = IMAGES.scots;
-
-  /* Every <img> carries data-img="<key>"; the picture itself is stored once. */
+  /* Every <img> carries data-img="<key>"; the picture itself is stored once.
+     The pictures are the bulk of the file, so build.py puts them LAST, one
+     small script each, after the text of every page. On a slow phone the
+     words appear first and the photos fill in as they arrive, instead of a
+     blank screen until the whole file has downloaded. */
+  var IMAGES = {};
+  var PIXEL = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
   function applyImages(scope) {
     (scope || document).querySelectorAll('img[data-img]').forEach(function (im) {
       var src = IMAGES[im.getAttribute('data-img')];
       if (src && im.src !== src) im.src = src;
     });
   }
+  document.addEventListener('mc:image', function (e) {
+    IMAGES[e.detail.key] = e.detail.src;
+    document.querySelectorAll('img[data-img="' + e.detail.key + '"]').forEach(function (im) {
+      im.src = e.detail.src;
+    });
+  });
   var LOGO_ALT = 'Maryville College Scots logo';
 
   function get(p) { return p.split('.').reduce(function (o, k) { return o == null ? undefined : o[k]; }, D); }
@@ -37,7 +46,7 @@
   var pages = [].slice.call(document.querySelectorAll('.page'));
   var ids = pages.map(function (p) { return p.id.replace('page-', ''); });
 
-  var current = null;
+  var current = null, currentFrag = '';
 
   /* Anything still pointing at http(s) leaves the site. Flag it so people know
      before they click, rather than being surprised by a new tab. */
@@ -69,9 +78,14 @@
     });
   }
 
-  function show(page, frag) {
+  /* opts.y: put the page back where the visitor left it (Back button).
+     opts.focus: move keyboard focus to the new page's heading, or to the
+     section asked for, so screen readers announce where they landed. */
+  function show(page, frag, opts) {
+    opts = opts || {};
     pages.forEach(function (p) { p.hidden = p.id !== 'page-' + page; });
     current = page;
+    currentFrag = frag || '';
     var sec = document.getElementById('page-' + page);
     document.title = sec ? sec.getAttribute('data-title') : 'Maryville Soccer Camp';
 
@@ -83,19 +97,79 @@
 
     revealAll(sec);
 
-    if (frag) {
-      var t = document.getElementById(frag);
-      if (t) {
-        t.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        // Briefly mark the thing the person asked for, so arriving on a long
-        // page doesn't leave them hunting for it.
-        t.classList.add('is-target');
-        setTimeout(function () { t.classList.remove('is-target'); }, 2200);
-        return;
-      }
+    var t = frag ? document.getElementById(frag) : null;
+    if (opts.y != null) {
+      // Jump straight back; a smooth scroll down a long page feels like lag.
+      var html = document.documentElement;
+      html.style.scrollBehavior = 'auto';
+      window.scrollTo(0, opts.y);
+      html.style.scrollBehavior = '';
+    } else if (t) {
+      t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Briefly mark the thing the person asked for, so arriving on a long
+      // page doesn't leave them hunting for it.
+      t.classList.add('is-target');
+      setTimeout(function () { t.classList.remove('is-target'); }, 2200);
+    } else {
+      window.scrollTo(0, 0);
     }
-    window.scrollTo(0, 0);
+    if (opts.focus) focusOn(t || (sec && sec.querySelector('h1')));
   }
+
+  function focusOn(el) {
+    if (!el) return;
+    if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+    try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
+  }
+
+  /* ── BACK BUTTON ─────────────────────────────────────────────────────
+     Each page change adds a history entry that carries STATE ONLY: the URL
+     is never touched. Changing the URL (hash routing) is what broke preview
+     frames twice; a state-only entry doesn't change the address at all, and
+     was checked inside a sandboxed srcdoc frame. So the phone's Back button
+     returns to the previous page, at the spot the visitor left it, instead
+     of leaving the site. If a frame refuses history, navigation still works.
+     Never pass a URL as the third argument. */
+  function remember(push, state) {
+    try { if (push) history.pushState(state, ''); else history.replaceState(state, ''); } catch (e) {}
+  }
+  try { history.scrollRestoration = 'manual'; } catch (e) {}
+
+  function go(page, frag, focus) {
+    remember(false, { page: current, frag: currentFrag, y: window.pageYOffset });
+    show(page, frag, { focus: focus });
+    remember(true, { page: page, frag: frag || '' });
+  }
+
+  window.addEventListener('popstate', function (e) {
+    var st = e.state;
+    if (!st || ids.indexOf(st.page) === -1) return;
+    var dr = document.getElementById('navDrawer');
+    if (dr && dr.classList.contains('open')) document.getElementById('navClose').click();
+    var a = document.activeElement;
+    var inChat = a && a.closest && a.closest('.as-root');
+    show(st.page, st.y == null ? st.frag : '', { y: st.y, focus: !inChat });
+  });
+
+  /* ── LINKS TO ONE PAGE ───────────────────────────────────────────────
+     maryville-soccer-camp.html#elite-camp opens Elite Camp, and
+     #elite-camp/schedule opens it at the schedule, so a text message or QR
+     code can point at one camp. Read only: the site never writes the URL. */
+  function fromHash() {
+    var h = '';
+    try { h = decodeURIComponent(location.hash || ''); } catch (e) { return null; }
+    var parts = h.replace(/^#\/?/, '').replace(/^page-/, '').split('/');
+    if (ids.indexOf(parts[0]) === -1) return null;
+    var frag = /^[\w-]+$/.test(parts[1] || '') &&
+               document.querySelector('#page-' + parts[0] + ' #' + parts[1]) ? parts[1] : '';
+    return { page: parts[0], frag: frag };
+  }
+  window.addEventListener('hashchange', function () {
+    var d = fromHash();
+    if (!d) return;
+    show(d.page, d.frag, { focus: true });
+    remember(false, { page: d.page, frag: d.frag });
+  });
 
   /* All navigation is handled here. Nothing writes to location, so the site
      works identically in a preview frame, in a file:// window and on a host. */
@@ -112,7 +186,8 @@
     var page = a.getAttribute('data-goto');
     if (ids.indexOf(page) === -1) return;
     e.preventDefault();
-    show(page, a.getAttribute('data-frag') || '');
+    // Links in the chat keep focus in the chat; everything else moves it.
+    go(page, a.getAttribute('data-frag') || '', !a.closest('.as-root'));
   });
 
   document.addEventListener('keydown', function (e) {
@@ -133,7 +208,9 @@
   }
 
   function buildHeader() {
-    var announce = D.announcementLink
+    var announce = season.over
+      ? esc(season.message) + ' <a href="#page-contact" data-goto="contact">Contact us</a>'
+      : D.announcementLink
       ? esc(D.registrationStatus) + ' <a href="#page-register" data-goto="register">' + esc(D.announcementLinkText) + '</a>'
       : esc(D.registrationStatus);
 
@@ -141,7 +218,7 @@
       '<div class="announce">' + announce + '</div>' +
       '<nav class="nav" aria-label="Main"><div class="nav-inner">' +
         '<a class="brand" href="#page-index" data-goto="index">' +
-          '<img src="' + LOGO + '" alt="' + LOGO_ALT + '" width="480" height="288">' +
+          '<img src="' + PIXEL + '" data-img="scots" alt="' + LOGO_ALT + '" width="480" height="288">' +
           '<span class="brand-text"><b>Maryville Soccer Camp</b>' +
           '<span>' + esc(D.location.city) + '</span></span>' +
         '</a>' +
@@ -152,7 +229,7 @@
           'aria-controls="navDrawer" aria-label="Open menu"><span></span></button>' +
       '</div></nav>' +
       '<div class="drawer" id="navDrawer" hidden>' +
-        '<div class="drawer-top"><img src="' + LOGO + '" alt="' + LOGO_ALT + '">' +
+        '<div class="drawer-top"><img src="' + PIXEL + '" data-img="scots" alt="' + LOGO_ALT + '">' +
         '<button class="drawer-close" id="navClose" type="button" aria-label="Close menu">&times;</button></div>' +
         /* Only the orange button below — the plain list item duplicated it. */
         '<ul>' + navHTML() + '</ul>' +
@@ -202,7 +279,7 @@
   function buildFooter() {
     document.getElementById('site-footer').innerHTML =
       '<footer class="footer"><div class="wrap"><div class="footer-grid">' +
-        '<div><img class="f-logo" src="' + LOGO + '" alt="' + LOGO_ALT + '">' +
+        '<div><img class="f-logo" src="' + PIXEL + '" data-img="scots" alt="' + LOGO_ALT + '">' +
           '<p><strong>Maryville Soccer Camp</strong><br>' + esc(D.location.college) +
           '<br>' + esc(D.location.city) + '</p></div>' +
         '<div><h4>Camps</h4><ul>' +
@@ -310,6 +387,92 @@
         });
       }, 900);
     });
+  }
+
+  /* ── FINISHED CAMPS ──────────────────────────────────────────────────
+     A camp is finished from the day after its endDate in data.js. Its
+     Register buttons stop pointing at a closed form and become "Ask about
+     2027" (the year after endDate, to Contact), and its card and page say so. When every camp
+     is finished the announcement bar says the season is over. Putting next
+     year's dates and endDate into data.js reopens everything by itself.
+     `finished` is also set on each camp in siteData for the assistant. */
+  function campFinished(c) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((c && c.endDate) || '');
+    if (!m) return false;
+    return new Date() >= new Date(+m[1], +m[2] - 1, +m[3] + 1);
+  }
+  var season = (function () {
+    var keys = Object.keys(D.camps), done = 0, year = 0;
+    keys.forEach(function (k) {
+      var c = D.camps[k];
+      c.finished = campFinished(c);
+      if (c.finished) done++;
+      if (c.endDate) year = Math.max(year, +c.endDate.slice(0, 4));
+    });
+    var over = keys.length > 0 && done === keys.length;
+    return { over: over,
+             // Short enough for one line on a phone; the cards say the rest.
+             message: 'The ' + year + ' camps have finished.' };
+  })();
+
+  function markFinishedCamps() {
+    document.querySelectorAll('[data-mc-href$=".registrationUrl"]').forEach(function (a) {
+      var k = a.getAttribute('data-mc-href').split('.')[1];
+      if (!D.camps[k] || !D.camps[k].finished) return;
+      a.removeAttribute('data-mc-href');
+      a.removeAttribute('target');
+      a.removeAttribute('rel');
+      a.setAttribute('data-goto', 'contact');
+      a.textContent = 'Ask about ' + (+D.camps[k].endDate.slice(0, 4) + 1);
+      a.classList.add('is-finished');
+      var box = a.closest('.camp-card, .hero');
+      if (!box || box.querySelector('.camp-status')) return;
+      var anchor = box.querySelector('.dates, .hero-facts');
+      if (!anchor) return;
+      var note = document.createElement('p');
+      note.className = 'camp-status';
+      note.textContent = 'This camp has finished. Next year\u2019s dates will be posted here.';
+      anchor.parentNode.insertBefore(note, anchor.nextSibling);
+    });
+  }
+
+  /* ── PACKING LISTS ───────────────────────────────────────────────────
+     Lists marked data-pack can be ticked off while packing. The ticks are
+     kept on this device only (localStorage), by item text, so reordering the
+     list doesn't scramble them. Without storage they still tick, just don't
+     stick. */
+  function stored(k) { try { return localStorage.getItem(k) === '1'; } catch (e) { return false; } }
+  function store(k, on) {
+    try { if (on) localStorage.setItem(k, '1'); else localStorage.removeItem(k); } catch (e) {}
+  }
+  function wirePackingLists() {
+    var lists = document.querySelectorAll('ul.checklist[data-pack]');
+    lists.forEach(function (ul) {
+      ul.classList.add('is-tickable');
+      [].forEach.call(ul.children, function (li) {
+        var key = 'mc-pack:' + li.textContent.replace(/\s+/g, ' ').trim();
+        var label = document.createElement('label');
+        var box = document.createElement('input');
+        box.type = 'checkbox';
+        while (li.firstChild) label.appendChild(li.firstChild);
+        label.insertBefore(box, label.firstChild);
+        li.appendChild(label);
+        box.checked = stored(key);
+        li.classList.toggle('is-checked', box.checked);
+        box.addEventListener('change', function () {
+          li.classList.toggle('is-checked', box.checked);
+          store(key, box.checked);
+        });
+      });
+    });
+    if (!lists.length) return;
+    var head = lists[0].closest('section').querySelector('.section-head');
+    if (head) {
+      var hint = document.createElement('p');
+      hint.className = 'pack-hint';
+      hint.textContent = 'Tap items to tick them off as you pack. Your ticks stay on this device.';
+      head.appendChild(hint);
+    }
   }
 
   /* ── DATA BINDING ────────────────────────────────────────────────────── */
@@ -449,15 +612,19 @@
   }
 
   /* ── GO ──────────────────────────────────────────────────────────────── */
-  applyImages();
   buildHeader();
   buildFooter();
+  applyImages();
+  markFinishedCamps();
   bindData();
+  wirePackingLists();
   localizeLinks();
   markExternal();
   wireContactLinks();
   wireAccordions();
   wireTabs();
   initReveal();
-  show('index', '');
+  var start = fromHash() || { page: 'index', frag: '' };
+  show(start.page, start.frag);
+  remember(false, { page: start.page, frag: start.frag });
 })();

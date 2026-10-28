@@ -136,6 +136,7 @@
 .as-facts dt { color: var(--as-muted); font-size: .82rem; padding-top: 1px; }
 .as-facts dd { margin: 0; color: #FFFFFF; font-weight: 600; }
 .as-note { display: block; font-weight: 400; font-size: .8rem; color: var(--as-muted); }
+.as-finished { margin: 8px 0 0 !important; font-weight: 600; color: var(--as-cream) !important; }
 
 /* ── Choice chips ───────────────────────────────────────────────────────── */
 .as-chips {
