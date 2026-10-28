@@ -1101,8 +1101,11 @@ figure.split-media:focus-within img {
 /* ── Logos keep their 5:3 shape while the picture is still arriving ─────── */
 .brand img, .drawer-top img, .footer img.f-logo { aspect-ratio: 5 / 3; }
 
-/* ── Focus moved to a page heading after navigation (script.js focusOn) ── */
-[tabindex="-1"]:focus:not(:focus-visible) { outline: none; }
+/* ── Focus moved to a page heading after navigation (script.js focusOn) ──
+   It's there so screen readers announce the new page; a ring around the
+   heading just looks like a glitch (it showed after a #page link on an open
+   page). The next Tab still shows focus as normal. */
+[tabindex="-1"]:focus { outline: none; }
 
 /* ── Headings that exist only for screen readers (fix skipped levels) ──── */
 .visually-hidden {
