@@ -20,7 +20,8 @@ needs touching.
 after it, the site marks that camp finished on its own: its Register buttons
 become "Ask about <next year>" and go to Contact, and its card and page say next
 year's dates will be posted. When every camp is finished, the announcement bar
-says the season is over. New dates plus a new `endDate` reopen it.
+says the season is over, and the general Register buttons read "2027 camps"
+(the year after `endDate`). New dates plus a new `endDate` reopen it.
 
 ## Linking to one page
 

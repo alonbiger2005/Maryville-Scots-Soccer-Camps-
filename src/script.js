@@ -410,10 +410,37 @@
       if (c.endDate) year = Math.max(year, +c.endDate.slice(0, 4));
     });
     var over = keys.length > 0 && done === keys.length;
-    return { over: over,
+    return { over: over, year: year,
              // Short enough for one line on a phone; the cards say the rest.
              message: 'The ' + year + ' camps have finished.' };
   })();
+
+  /* While the season is over, the generic Register buttons (nav, drawer,
+     phone bar, page buttons) read "2027 camps" and still open the Register
+     page, whose heading and intro change to match. The "Ready to register?"
+     sections (data-season="open") are hidden, since there is nothing to
+     register for. Inline "registration page" links in FAQ answers and the
+     footer's "Registration" link name the page, so they stay. */
+  function relabelOffSeason() {
+    if (!season.over) return;
+    var label = (season.year + 1) + ' camps';
+    document.querySelectorAll('a[data-goto="register"]').forEach(function (a) {
+      if (a.closest('p, .footer, .as-root')) return;
+      // Keep any icon (phone bar); replace only the words.
+      var words = [].filter.call(a.childNodes, function (n) { return n.nodeType === 3 && n.textContent.trim(); });
+      if (words.length) words[words.length - 1].textContent = label;
+      else a.textContent = label;
+      a.classList.add('is-offseason');
+    });
+    document.querySelectorAll('[data-season="open"]').forEach(function (s) { s.hidden = true; });
+    var reg = document.getElementById('page-register');
+    if (!reg) return;
+    reg.setAttribute('data-title', label.charAt(0).toUpperCase() + label.slice(1) + ' | Maryville Soccer Camp');
+    var h1 = reg.querySelector('h1'), lede = reg.querySelector('.lede');
+    if (h1) h1.textContent = label.charAt(0).toUpperCase() + label.slice(1);
+    if (lede) lede.textContent = 'The ' + season.year + ' camps have finished. Next year\u2019s dates ' +
+      'will be posted here. Until then, camp staff are happy to answer questions.';
+  }
 
   function markFinishedCamps() {
     document.querySelectorAll('[data-mc-href$=".registrationUrl"]').forEach(function (a) {
@@ -616,6 +643,7 @@
   buildFooter();
   applyImages();
   markFinishedCamps();
+  relabelOffSeason();
   bindData();
   wirePackingLists();
   localizeLinks();

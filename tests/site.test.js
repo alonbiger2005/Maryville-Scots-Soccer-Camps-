@@ -105,6 +105,62 @@ test('season over: announcement bar says so, every button asks about next year',
   await done(p);
 });
 
+test('season over: generic Register buttons read "2027 camps"; register CTAs hidden', async () => {
+  const p = await page({ ...PHONE, now: OVER_DAY });
+  const r = await p.evaluate(() => {
+    const txt = s => { const e = document.querySelector(s); return e && e.textContent.trim(); };
+    return {
+      nav: txt('.nav-cta'), drawer: txt('.drawer-cta a'), bar: txt('.mobilebar a.primary'),
+      barIcon: !!document.querySelector('.mobilebar a.primary svg'),
+      hero: txt('#page-index .hero a[data-goto="register"]'),
+      h1: txt('#page-register h1'), title: document.querySelector('#page-register').getAttribute('data-title'),
+      lede: txt('#page-register .lede'),
+      ctas: [...document.querySelectorAll('[data-season="open"]')].map(s => s.hidden),
+      inline: txt('#registration-1 .acc-panel-inner a'), footer: txt('.footer a[data-goto="register"]'),
+      leftover: [...document.querySelectorAll('a[data-goto="register"]')]
+        .filter(a => !a.closest('p, .footer, .as-root') && /register/i.test(a.textContent)).map(a => a.textContent.trim())
+    };
+  });
+  eq(r.nav, '2027 camps', 'nav button');
+  eq(r.drawer, '2027 camps', 'drawer button');
+  eq(r.bar, '2027 camps', 'phone bar');
+  assert(r.barIcon, 'phone bar keeps its icon');
+  eq(r.hero, '2027 camps', 'home hero button');
+  eq(r.h1, '2027 camps', 'Register page heading');
+  assert(/^The 2026 camps have finished/.test(r.lede), 'Register page intro: ' + r.lede);
+  eq(r.title, '2027 camps | Maryville Soccer Camp', 'tab title');
+  eq(JSON.stringify(r.ctas), '[true,true,true]', '"Ready to register?" sections hidden');
+  eq(r.inline, 'registration page', 'inline FAQ link keeps its wording');
+  eq(r.footer, 'Registration', 'footer link keeps its wording');
+  eq(r.leftover.length, 0, 'no generic button still says Register: ' + r.leftover);
+  await nav(p, '.mobilebar a.primary');
+  eq(await shown(p), 'page-register', 'still opens the Register page');
+  for (const w of [320, 360, 390, 414]) {
+    await p.setViewportSize({ width: w, height: 740 });
+    const fits = await p.evaluate(() => {
+      const a = document.querySelector('.mobilebar a.primary'), r = document.createRange();
+      r.selectNodeContents(a);
+      const t = r.getBoundingClientRect(), b = a.getBoundingClientRect();
+      return t.left >= b.left - 0.5 && t.right <= b.right + 0.5;
+    });
+    assert(fits, `phone bar label fits at ${w}px`);
+  }
+  await done(p);
+});
+
+test('while camps are open the Register buttons say Register', async () => {
+  const p = await page({ ...PHONE, now: '2026-03-01T12:00:00' });   // one camp over, two open
+  const r = await p.evaluate(() => ({
+    nav: document.querySelector('.nav-cta').textContent.trim(),
+    bar: document.querySelector('.mobilebar a.primary').textContent.trim(),
+    h1: document.querySelector('#page-register h1').textContent.trim(),
+    ctas: [...document.querySelectorAll('[data-season="open"]')].filter(s => s.hidden).length
+  }));
+  eq(r.nav, 'Register', 'nav'); eq(r.bar, 'Register', 'bar'); eq(r.h1, 'Register for camp', 'heading');
+  eq(r.ctas, 0, 'register sections shown');
+  await done(p);
+});
+
 test('the last day of camp still counts as open', async () => {
   const p = await page({ ...DESKTOP, now: '2026-06-04T20:00:00' });   // Elite ends Jun 4
   const n = await p.evaluate(() => [...document.querySelectorAll('a[href]')]

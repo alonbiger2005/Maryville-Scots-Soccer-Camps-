@@ -256,9 +256,13 @@ test('finished camps: no form links, the chat says so and offers Contact', async
   // 28 October 2026: every camp is over.
   p = await page({ ...DESKTOP, now: '2026-10-28T12:00:00' });
   await p.click('#asBtn');
-  await chip(p, 'Register');
+  assert(!(await chipLabels(p)).includes('Register'), 'menu no longer says Register');
+  await chip(p, '2027 camps');
   assert((await lastBot(p)).includes('registration is closed'), 'season over message');
   eq(await p.locator('#asChips a.is-external').count(), 0, 'no form links at all');
+  await chip(p, 'Main menu');
+  await ask(p, 'register');
+  eq((await state(p)).step, 'register', 'typing "register" still finds it');
   await done(p);
 });
 

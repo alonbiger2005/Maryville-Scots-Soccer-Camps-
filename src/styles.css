@@ -1123,6 +1123,9 @@ figure.split-media:focus-within img {
 /* "Ask about 2027" is longer than "Register"; keep it on one line in the
    narrow two-up card buttons (780px and 1100px were wrapping). */
 .camp-card-actions .btn.is-finished { padding-inline: 6px; font-size: .9rem; white-space: nowrap; }
+/* "2027 camps" is longer than "Register": on narrow phones the bar button
+   drops its icon so the words fit (320px clipped them). */
+@media (max-width: 400px) { .mobilebar a.primary.is-offseason svg { display: none; } }
 
 /* ── Packing lists you can tick off (script.js wirePackingLists) ──────── */
 .pack-hint { margin: .4em 0 0; font-size: .92rem; color: var(--muted); }

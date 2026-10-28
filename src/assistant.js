@@ -377,6 +377,18 @@
   function canRegister(c) { return !c.finished && !!c.registrationUrl; }
   function nextYear(c) { return +String(c.endDate).slice(0, 4) + 1; }
 
+  /* While every camp is finished, "Register" reads "2027 camps", as on the
+     page. Typing "register" still finds it (alias). */
+  function offSeason() {
+    var keys = Object.keys(CAMP);
+    if (!keys.every(function (k) { return D.camps[k].finished; })) return null;
+    return Math.max.apply(null, keys.map(function (k) { return nextYear(D.camps[k]); })) + ' camps';
+  }
+  function registerLabel(label) {
+    var off = offSeason();
+    return off && label === 'Register' ? { label: off, alias: label } : { label: label };
+  }
+
   function campChips(key) {
     var c = D.camps[key], m = CAMP[key];
     return [
@@ -393,7 +405,10 @@
       setMode('menu');
       state.camp = null;
       say('What can I help you with?');
-      chips(MENU.map(function (m) { return { label: m.label, step: m.step }; }));
+      chips(MENU.map(function (m) {
+        var l = registerLabel(m.label);
+        return { label: l.label, alias: l.alias, step: m.step };
+      }));
     },
 
     findCamp: function () {
@@ -449,7 +464,9 @@
       say('Which page?');
       chips(PAGES.map(function (p, i) {
         var hasSections = p.sections.some(function (s) { return findOnPage(p.page, s.frag); });
-        return hasSections ? { label: p.label, step: 'page', arg: i } : { label: p.label, page: p.page };
+        var l = registerLabel(p.label);
+        return hasSections ? { label: l.label, alias: l.alias, step: 'page', arg: i }
+                           : { label: l.label, alias: l.alias, page: p.page };
       }).concat(NAV_TAIL));
     },
 
@@ -653,7 +670,7 @@
   function matchChip(text) {
     var t = norm(text);
     if (!t) return null;
-    var exact = chipDefs.filter(function (c) { return norm(c.label) === t; });
+    var exact = chipDefs.filter(function (c) { return norm(c.label) === t || (c.alias && norm(c.alias) === t); });
     if (exact.length) return exact[0];
     if (t.length < 3) return null;
     var partial = chipDefs.filter(function (c) {

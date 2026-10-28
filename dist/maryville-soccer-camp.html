@@ -1138,6 +1138,9 @@ figure.split-media:focus-within img {
 /* "Ask about 2027" is longer than "Register"; keep it on one line in the
    narrow two-up card buttons (780px and 1100px were wrapping). */
 .camp-card-actions .btn.is-finished { padding-inline: 6px; font-size: .9rem; white-space: nowrap; }
+/* "2027 camps" is longer than "Register": on narrow phones the bar button
+   drops its icon so the words fit (320px clipped them). */
+@media (max-width: 400px) { .mobilebar a.primary.is-offseason svg { display: none; } }
 
 /* ── Packing lists you can tick off (script.js wirePackingLists) ──────── */
 .pack-hint { margin: .4em 0 0; font-size: .92rem; color: var(--muted); }
@@ -1791,7 +1794,7 @@ figure.split-media:focus-within img {
   </section>
 
   <!-- ═══ FINAL CTA ══════════════════════════════════════════════════════ -->
-  <section class="cta-final tight">
+  <section class="cta-final tight" data-season="open">
     <div class="wrap-narrow">
       <hr class="rule">
       <h2>Ready to join us?</h2>
@@ -2955,7 +2958,7 @@ figure.split-media:focus-within img {
     </div>
   </section>
 
-  <section class="cta-final tight">
+  <section class="cta-final tight" data-season="open">
     <div class="wrap-narrow">
       <hr class="rule">
       <h2>Ready to register?</h2>
@@ -3257,7 +3260,7 @@ figure.split-media:focus-within img {
     </div>
   </section>
 
-  <section class="cta-final tight">
+  <section class="cta-final tight" data-season="open">
     <div class="wrap-narrow">
       <hr class="rule">
       <h2>Ready to register?</h2>
@@ -3852,10 +3855,37 @@ window.siteData = siteData;
       if (c.endDate) year = Math.max(year, +c.endDate.slice(0, 4));
     });
     var over = keys.length > 0 && done === keys.length;
-    return { over: over,
+    return { over: over, year: year,
              // Short enough for one line on a phone; the cards say the rest.
              message: 'The ' + year + ' camps have finished.' };
   })();
+
+  /* While the season is over, the generic Register buttons (nav, drawer,
+     phone bar, page buttons) read "2027 camps" and still open the Register
+     page, whose heading and intro change to match. The "Ready to register?"
+     sections (data-season="open") are hidden, since there is nothing to
+     register for. Inline "registration page" links in FAQ answers and the
+     footer's "Registration" link name the page, so they stay. */
+  function relabelOffSeason() {
+    if (!season.over) return;
+    var label = (season.year + 1) + ' camps';
+    document.querySelectorAll('a[data-goto="register"]').forEach(function (a) {
+      if (a.closest('p, .footer, .as-root')) return;
+      // Keep any icon (phone bar); replace only the words.
+      var words = [].filter.call(a.childNodes, function (n) { return n.nodeType === 3 && n.textContent.trim(); });
+      if (words.length) words[words.length - 1].textContent = label;
+      else a.textContent = label;
+      a.classList.add('is-offseason');
+    });
+    document.querySelectorAll('[data-season="open"]').forEach(function (s) { s.hidden = true; });
+    var reg = document.getElementById('page-register');
+    if (!reg) return;
+    reg.setAttribute('data-title', label.charAt(0).toUpperCase() + label.slice(1) + ' | Maryville Soccer Camp');
+    var h1 = reg.querySelector('h1'), lede = reg.querySelector('.lede');
+    if (h1) h1.textContent = label.charAt(0).toUpperCase() + label.slice(1);
+    if (lede) lede.textContent = 'The ' + season.year + ' camps have finished. Next year\u2019s dates ' +
+      'will be posted here. Until then, camp staff are happy to answer questions.';
+  }
 
   function markFinishedCamps() {
     document.querySelectorAll('[data-mc-href$=".registrationUrl"]').forEach(function (a) {
@@ -4058,6 +4088,7 @@ window.siteData = siteData;
   buildFooter();
   applyImages();
   markFinishedCamps();
+  relabelOffSeason();
   bindData();
   wirePackingLists();
   localizeLinks();
@@ -4451,6 +4482,18 @@ window.siteData = siteData;
   function canRegister(c) { return !c.finished && !!c.registrationUrl; }
   function nextYear(c) { return +String(c.endDate).slice(0, 4) + 1; }
 
+  /* While every camp is finished, "Register" reads "2027 camps", as on the
+     page. Typing "register" still finds it (alias). */
+  function offSeason() {
+    var keys = Object.keys(CAMP);
+    if (!keys.every(function (k) { return D.camps[k].finished; })) return null;
+    return Math.max.apply(null, keys.map(function (k) { return nextYear(D.camps[k]); })) + ' camps';
+  }
+  function registerLabel(label) {
+    var off = offSeason();
+    return off && label === 'Register' ? { label: off, alias: label } : { label: label };
+  }
+
   function campChips(key) {
     var c = D.camps[key], m = CAMP[key];
     return [
@@ -4467,7 +4510,10 @@ window.siteData = siteData;
       setMode('menu');
       state.camp = null;
       say('What can I help you with?');
-      chips(MENU.map(function (m) { return { label: m.label, step: m.step }; }));
+      chips(MENU.map(function (m) {
+        var l = registerLabel(m.label);
+        return { label: l.label, alias: l.alias, step: m.step };
+      }));
     },
 
     findCamp: function () {
@@ -4523,7 +4569,9 @@ window.siteData = siteData;
       say('Which page?');
       chips(PAGES.map(function (p, i) {
         var hasSections = p.sections.some(function (s) { return findOnPage(p.page, s.frag); });
-        return hasSections ? { label: p.label, step: 'page', arg: i } : { label: p.label, page: p.page };
+        var l = registerLabel(p.label);
+        return hasSections ? { label: l.label, alias: l.alias, step: 'page', arg: i }
+                           : { label: l.label, alias: l.alias, page: p.page };
       }).concat(NAV_TAIL));
     },
 
@@ -4727,7 +4775,7 @@ window.siteData = siteData;
   function matchChip(text) {
     var t = norm(text);
     if (!t) return null;
-    var exact = chipDefs.filter(function (c) { return norm(c.label) === t; });
+    var exact = chipDefs.filter(function (c) { return norm(c.label) === t || (c.alias && norm(c.alias) === t); });
     if (exact.length) return exact[0];
     if (t.length < 3) return null;
     var partial = chipDefs.filter(function (c) {
