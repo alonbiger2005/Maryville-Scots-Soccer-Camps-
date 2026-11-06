@@ -1,0 +1,22 @@
+# Netlify build and publish settings. No secrets belong in this file.
+#
+# Netlify runs the build on every push to the connected branch and publishes
+# ONLY the dist/ folder, so the source, tests and project notes in this
+# repository are not served from the site.
+
+[build]
+  command = "python3 build/build.py"
+  publish = "dist"
+
+[build.environment]
+  # The build itself is Python 3 (standard library only); Node is pinned so
+  # the build image is predictable. Node runs the tests locally, not the build.
+  NODE_VERSION = "22"
+
+# Unlisted: no search engine indexing, following or caching, on every
+# response. To go public, remove this block, the robots meta tag in
+# src/head.html and the Disallow in src/robots.txt.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow, noarchive"

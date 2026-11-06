@@ -1,0 +1,3 @@
+# Unlisted site: no crawler may index anything.
+User-agent: *
+Disallow: /

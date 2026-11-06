@@ -173,6 +173,12 @@ test('the last day of camp still counts as open', async () => {
 test('Back returns to the previous page, at the same spot', async () => {
   const p = await page(PHONE);
   await p.evaluate(() => window.scrollTo({ top: 1500, behavior: 'instant' }));
+  // What the visitor is looking at: the block at the middle of the screen.
+  const onScreen = () => p.evaluate(() => {
+    const el = document.elementFromPoint(195, 390).closest('article, section');
+    return { text: el.textContent.trim().replace(/\s+/g, ' ').slice(0, 60), top: Math.round(el.getBoundingClientRect().top) };
+  });
+  const before = await onScreen();
   await nav(p, '#page-index a[data-goto="elite-camp"]');
   eq(await shown(p), 'page-elite-camp', 'on Elite Camp');
   await nav(p, '.nav-links a[data-goto="faq"]');
@@ -181,8 +187,11 @@ test('Back returns to the previous page, at the same spot', async () => {
   eq(await shown(p), 'page-elite-camp', 'Back -> Elite Camp');
   await p.goBack();
   eq(await shown(p), 'page-index', 'Back -> Home');
-  const y = await p.evaluate(() => window.pageYOffset);
-  assert(Math.abs(y - 1500) < 4, 'home scrolled back to where it was, y=' + y);
+  // Not an exact pixel: Chrome's scroll anchoring may nudge it a few px when
+  // a late image reflows the page, keeping the same content in view.
+  const after = await onScreen();
+  eq(after.text, before.text, 'same content in view after Back');
+  assert(Math.abs(after.top - before.top) < 40, `same place on screen (${before.top} -> ${after.top})`);
   await p.goForward();
   eq(await shown(p), 'page-elite-camp', 'Forward works too');
   await p.evaluate(() => document.getElementById('navToggle').click());
@@ -293,6 +302,22 @@ test('each image is embedded once, logo and home images first', async () => {
   eq(keys[0], 'scots', 'logo first');
   eq(keys[1], 'champs', 'home hero next');
   assert(html.indexOf('mc:image\',{detail') > html.indexOf('</main>'), 'images after all page text');
+});
+
+test('Netlify deploy files: index.html, robots.txt, version.json, unlisted everywhere', async () => {
+  const dist = path.resolve(__dirname, '..', 'dist');
+  const html = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
+  eq(html, fs.readFileSync(FILE, 'utf8'), 'index.html is the built site');
+  assert(/<meta name="robots" content="noindex, nofollow, noarchive">/.test(html), 'noindex meta tag');
+  assert(/User-agent: \*\s+Disallow: \/\s*$/m.test(fs.readFileSync(path.join(dist, 'robots.txt'), 'utf8')), 'robots.txt blocks all');
+  const v = JSON.parse(fs.readFileSync(path.join(dist, 'version.json'), 'utf8'));
+  assert(/^[0-9a-f]{7,40}$/.test(v.commit), 'version.json names a commit: ' + v.commit);
+  const toml = fs.readFileSync(path.resolve(__dirname, '..', 'netlify.toml'), 'utf8');
+  assert(/publish = "dist"/.test(toml) && /command = "python3 build\/build.py"/.test(toml), 'build and publish');
+  assert(/NODE_VERSION = "\d+"/.test(toml), 'Node version pinned');
+  assert(/for = "\/\*"[\s\S]*X-Robots-Tag = "noindex, nofollow, noarchive"/.test(toml), 'X-Robots-Tag on every response');
+  const files = fs.readdirSync(dist).sort().join(',');
+  eq(files, 'index.html,maryville-soccer-camp.html,robots.txt,version.json', 'nothing else is published');
 });
 
 /* ── 5. packing list ─────────────────────────────────────────────────────── */

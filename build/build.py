@@ -32,8 +32,11 @@ Why one file
 """
 
 import base64
+import datetime
 import json
+import os
 import re
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -131,11 +134,31 @@ def main():
     DIST.mkdir(exist_ok=True)
     out = DIST / "maryville-soccer-camp.html"
     out.write_text(html)
-    # GitHub Pages serves the repository root, so the same file is written as
-    # index.html there too (with .nojekyll, so it is served untouched). The
-    # two are byte-identical and git stores identical files once.
-    (ROOT / "index.html").write_text(html)
+    write_deploy_files(html)
     print(f"built {out}  —  {len(html) // 1024} KB  ({len(images)} embedded images)")
+
+
+def write_deploy_files(html):
+    """What Netlify publishes (netlify.toml: publish = "dist"): the site as
+    index.html, a robots.txt that blocks every crawler (the site is unlisted),
+    and version.json naming the commit it was built from, so a deploy can be
+    checked against the push. These three are generated and not committed."""
+    (DIST / "index.html").write_text(html)
+    (DIST / "robots.txt").write_text((SRC / "robots.txt").read_text())
+    commit = os.environ.get("COMMIT_REF")          # set by Netlify
+    if not commit:
+        try:
+            commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                                    capture_output=True, text=True).stdout.strip()
+        except OSError:
+            commit = ""
+    version = {
+        "commit": commit or "unknown",
+        "branch": os.environ.get("BRANCH", ""),
+        "context": os.environ.get("CONTEXT", "local"),
+        "built": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    (DIST / "version.json").write_text(json.dumps(version, indent=2) + "\n")
 
 
 if __name__ == "__main__":

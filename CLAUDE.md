@@ -30,10 +30,30 @@ open dist/maryville-soccer-camp.html
 
 No dependencies, no package manager, no server. Python 3 standard library only.
 
-**Edit `src/`, never `dist/` or the root `index.html`.** Both are generated
-(identical) and will be overwritten. The root copy is what GitHub Pages
-serves at https://alonbiger2005.github.io/Maryville-Scots-Soccer-Camps-/ ;
-`.nojekyll` stops Pages from running Jekyll over the repo.
+**Edit `src/`, never `dist/`.** Everything in it is generated and will be
+overwritten.
+
+## Hosting: Netlify (the real home)
+
+**Live site: https://maryvillecollegescotssoccercamps.netlify.app/** It's
+Netlify's free plan, connected to this GitHub repo. Netlify builds every push to the
+connected branch with `netlify.toml` (`python3 build/build.py`, publish
+`dist/`, Node pinned, no secrets). GitHub holds the code. Neither GitHub Pages
+nor a claude.ai artifact is the site's home (Alon's rule for everything he
+builds).
+
+- **Only `dist/` is published:** `index.html`, `maryville-soccer-camp.html`
+  (the same file), `robots.txt`, `version.json`. Before `netlify.toml`,
+  Netlify served the repo root, so CLAUDE.md, src/ and the checklist were all
+  public on the site.
+- **Unlisted** until Alon says otherwise. That takes three things: the
+  `X-Robots-Tag: noindex, nofollow, noarchive` header (netlify.toml), the
+  robots meta tag (src/head.html) and `Disallow: /` (src/robots.txt). Going
+  public means removing all three.
+- **After every update:** push, then confirm the live `version.json` shows the
+  pushed commit (`COMMIT_REF`), then give Alon the live link.
+- Netlify injects its own HTML comment at the top of `<head>`, so the live
+  file isn't byte-identical to `dist/`. That's expected.
 
 ---
 
@@ -50,9 +70,8 @@ src/
   assets/          14 images + manifest.json mapping key -> filename
 build/build.py     assembles everything into one file
 tests/             Playwright tests: assistant.test.js, site.test.js (node, global playwright)
-dist/              generated output
-index.html         generated, identical to dist/ (GitHub Pages serves this)
-.nojekyll          tells GitHub Pages to serve files as-is
+dist/              generated: the site + index.html, robots.txt, version.json (Netlify publishes this)
+netlify.toml       Netlify build, publish folder, Node version, X-Robots-Tag header
 ```
 
 ### The output must stay a single file
@@ -200,6 +219,8 @@ The checks that have actually caught regressions:
 • Back returns to the previous page; #<page> opens that page
 • slow 4G: text visible in about 1 s (tests/site.test.js measures it)
 • node tests/site.test.js and node tests/assistant.test.js both pass
+• after pushing: the live version.json shows the new commit, X-Robots-Tag is
+  present, and /CLAUDE.md returns 404 on the Netlify site
 ```
 
 For preview-frame issues, reproduce inside
