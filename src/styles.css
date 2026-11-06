@@ -618,7 +618,7 @@ section.tight { padding-block: clamp(40px, 5vw, 64px); }
 .contact-lines a {
   display: inline-block; padding: 8px 0; min-height: 44px;
   font-family: var(--display); font-weight: 700; font-size: 1.16rem;
-  color: var(--garnet); text-decoration: none; word-break: break-word;
+  color: var(--garnet); text-decoration: none; overflow-wrap: break-word;
 }
 .dark .contact-lines a { color: var(--white); }
 .contact-lines a:hover { text-decoration: underline; text-decoration-color: var(--orange); }
@@ -1097,3 +1097,66 @@ figure.split-media:focus-within img {
 
 
 [data-empty="true"] { display: none !important; }
+
+/* ── Logos keep their 5:3 shape while the picture is still arriving ─────── */
+.brand img, .drawer-top img, .footer img.f-logo { aspect-ratio: 5 / 3; }
+
+/* ── Focus moved to a page heading after navigation (script.js focusOn) ──
+   It's there so screen readers announce the new page; a ring around the
+   heading just looks like a glitch (it showed after a #page link on an open
+   page). The next Tab still shows focus as normal. */
+[tabindex="-1"]:focus { outline: none; }
+
+/* ── Headings that exist only for screen readers (fix skipped levels) ──── */
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+/* ── Finished camp note (script.js markFinishedCamps) ─────────────────── */
+.camp-status {
+  position: relative; padding-left: 16px; margin: .3em 0 .9em;
+  font-size: .95rem; font-weight: 600; color: var(--cream);
+}
+.camp-status::before {
+  content: ""; position: absolute; left: 0; top: .55em;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--orange-lit);
+}
+.hero .camp-status { margin: 18px 0 0; }
+/* "Ask about 2027" is longer than "Register"; keep it on one line in the
+   narrow two-up card buttons (780px and 1100px were wrapping). */
+.camp-card-actions .btn.is-finished { padding-inline: 6px; font-size: .9rem; white-space: nowrap; }
+/* "2027 camps" is longer than "Register": on narrow phones the bar button
+   drops its icon so the words fit (320px clipped them). */
+@media (max-width: 400px) { .mobilebar a.primary.is-offseason svg { display: none; } }
+
+/* ── Packing lists you can tick off (script.js wirePackingLists) ──────── */
+.pack-hint { margin: .4em 0 0; font-size: .92rem; color: var(--muted); }
+.checklist.is-tickable li { padding-left: 0; margin-bottom: 0; }
+.checklist.is-tickable li::before,
+.checklist.is-tickable li::after { content: none; }
+.checklist.is-tickable label {
+  position: relative; display: block; min-height: 44px;
+  padding: 9px 0 9px 32px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.checklist.is-tickable input {
+  position: absolute; left: 0; top: 9px; width: 20px; height: 20px;
+  margin: 0; opacity: 0;
+}
+.checklist.is-tickable label::before {
+  content: ""; position: absolute; left: 0; top: calc(9px + .3em);
+  width: 19px; height: 19px; border-radius: 4px;
+  border: 2px solid var(--orange-lit); background: transparent;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+.checklist.is-tickable li.is-checked label::before { background: var(--orange-dark); border-color: var(--orange-dark); }
+.checklist.is-tickable li.is-checked label::after {
+  content: ""; position: absolute; left: 6px; top: calc(9px + .3em + 5px);
+  width: 8px; height: 4px;
+  border-left: 2.5px solid #FFFFFF; border-bottom: 2.5px solid #FFFFFF;
+  transform: rotate(-45deg);
+}
+.checklist.is-tickable li.is-checked { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(191,169,163,.6); }
+.checklist.is-tickable label:has(input:focus-visible)::before { outline: 3px solid var(--orange); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .checklist.is-tickable label::before { transition: none; } }

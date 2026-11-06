@@ -67,6 +67,13 @@ const siteData = {
 
   /* --------------------------------------------------------------------
      CAMPS
+
+     endDate is the LAST DAY of each camp, written YEAR-MONTH-DAY, e.g.
+     "2027-06-03". The day after it, the site marks that camp as finished:
+     its Register buttons become "Ask about 2028" (the following year) and a
+     note says next year's dates will be posted. When every camp has finished, the
+     announcement bar says so too. Set the new dates AND the new endDate
+     each year and the camp opens again by itself.
      -------------------------------------------------------------------- */
   camps: {
 
@@ -82,6 +89,7 @@ const siteData = {
       womenDate: "Sunday, February 15, 2026",
       womenDateShort: "Feb 15",
       datesShort: "February 14–15, 2026",
+      endDate: "2026-02-15",
       price: "$110",
       priceNote: "Lunch included",
       // NOTE: the old Google Site used TWO DIFFERENT forms for this camp.
@@ -100,6 +108,7 @@ const siteData = {
       ages: "8–17",
       dates: "May 31 – June 4, 2026",
       datesShort: "May 31 – Jun 4",
+      endDate: "2026-06-04",
       dayPrice: "$235",
       dayPriceNote: "Includes lunch Monday–Wednesday",
       overnightPrice: "$440",
@@ -115,6 +124,7 @@ const siteData = {
       audience: "High school girls teams",
       dates: "July 12 – 15, 2026",
       datesShort: "Jul 12–15",
+      endDate: "2026-07-15",
       dayPrice: "$210",
       overnightPrice: "$375",
       mountainChallengePrice: "$30",

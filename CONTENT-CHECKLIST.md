@@ -12,7 +12,7 @@ Almost every item lives in **`data.js`**. Edit that one file and the whole site 
 
 | # | Item | Where it lives | Why it needs checking |
 |---|------|----------------|----------------------|
-| 1 | **Camp year** — is 2026 still the season being advertised? | `data.js` → dates, `registrationStatus` | The old site was still showing 2026 dates. |
+| 1 | **Next season's dates** | `data.js` → every camp's dates **and `endDate`**, `registrationStatus` | All three 2026 camps are over, so the site now shows them as finished and points visitors to Contact. Put in the 2027 dates and each camp's last day as `endDate` and registration reopens by itself. |
 | 2 | **ID & Prospect registration link** | `data.js` → `camps.prospect.registrationUrl` | ⚠️ The old site used **two different forms** for this camp. The homepage linked to a `docs.google.com` form; the ID camp page linked to `goo.gl/forms/ksjU3xZmJObtYCM63`. Only one can be right. |
 | 3 | **Team Camp registration link** | `data.js` → `camps.team.registrationUrl` | It is a `goo.gl` short link. Google has been retiring these. Please supply the full form URL. |
 | 4 | **Elite Camp registration link** | `data.js` → `camps.elite.registrationUrl` | Old link was `http://` (not secure). Changed to `https://` — confirm it still opens. |
